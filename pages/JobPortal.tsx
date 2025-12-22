@@ -64,34 +64,44 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
     if (loading) return <div className="h-screen flex items-center justify-center">লোডিং...</div>;
 
     return (
-        <div className="pt-24 pb-16 bg-slate-100 min-h-screen">
-            {/* Header & Search */}
-            <div className="bg-slate-900 pb-12 pt-8 mb-8 px-4">
-                <div className="container mx-auto">
-                    <h1 className="text-3xl font-bold text-white mb-6 text-center">ক্যারিয়ার পোর্টাল</h1>
-                    <div className="max-w-3xl mx-auto bg-white rounded-full p-2 flex shadow-2xl">
+        <div className="bg-slate-50 min-h-screen">
+            {/* Hero Section with Search */}
+            <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-900">
+                <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] animate-float"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] bg-purple-600/20 rounded-full blur-[100px] animate-float-delayed"></div>
+                
+                <div className="container mx-auto px-4 relative z-10 text-center">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+                        আপনার স্বপ্নের <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">ক্যারিয়ার</span> খুঁজুন
+                    </h1>
+                    <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed mb-10">
+                         সেরা কোম্পানিগুলোতে চাকরির সুযোগ। আপনার দক্ষতা অনুযায়ী পছন্দের চাকরিটি বেছে নিন।
+                    </p>
+
+                    {/* Search Bar in Hero */}
+                    <div className="max-w-3xl mx-auto bg-white rounded-full p-2 flex shadow-2xl transform hover:scale-[1.02] transition-transform">
                         <div className="flex-1 flex items-center px-4 border-r border-slate-200">
-                            <Briefcase className="text-slate-400 w-5 h-5 mr-3" />
+                            <Briefcase className="text-slate-400 w-5 h-5 mr-3 shrink-0" />
                             <input 
                                 type="text" 
                                 placeholder="পদের নাম বা কোম্পানি খুঁজুন..." 
-                                className="w-full py-2 outline-none text-slate-700 font-medium"
+                                className="w-full py-2 outline-none text-slate-700 font-medium bg-transparent"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full font-bold transition flex items-center gap-2">
-                            <Search size={18} /> খুঁজুন
+                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 md:px-8 py-3 rounded-full font-bold transition flex items-center gap-2 shrink-0">
+                            <Search size={18} /> <span className="hidden md:inline">খুঁজুন</span>
                         </button>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-4 gap-6 py-12">
                 
                 {/* Sidebar Filter */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
                         <div className="flex items-center gap-2 font-bold text-slate-800 mb-4 border-b pb-2">
                             <Filter size={18} /> ফিল্টার
                         </div>

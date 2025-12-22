@@ -3,15 +3,21 @@ import { Globe, Users, Briefcase, Target, Heart, Award, CheckCircle } from 'luci
 
 const About: React.FC = () => {
     return (
-        <div className="pt-20">
-            {/* Page Header */}
-            <div className="bg-slate-900 py-20 text-center text-white relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div className="container mx-auto px-4 relative z-10">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-4">আমাদের সম্পর্কে</h1>
-                    <p className="text-lg text-slate-300 max-w-2xl mx-auto">দক্ষতা, নেতৃত্ব এবং উদ্ভাবনের মাধ্যমে আমরা গড়ছি আগামীর বাংলাদেশ।</p>
+        <div>
+            {/* Hero Section */}
+            <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-900">
+                <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] animate-float"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] bg-purple-600/20 rounded-full blur-[100px] animate-float-delayed"></div>
+                
+                <div className="container mx-auto px-4 relative z-10 text-center">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+                        আমাদের <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">সম্পর্কে</span>
+                    </h1>
+                    <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
+                        দক্ষতা, নেতৃত্ব এবং উদ্ভাবনের মাধ্যমে আমরা গড়ছি আগামীর বাংলাদেশ। আপনার ক্যারিয়ার যাত্রার বিশ্বস্ত সঙ্গী।
+                    </p>
                 </div>
-            </div>
+            </section>
 
             {/* Our Story */}
             <section className="py-16 md:py-24 bg-white">

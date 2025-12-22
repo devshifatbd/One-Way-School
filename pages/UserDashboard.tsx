@@ -64,19 +64,32 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
 
     if (!user) {
         return (
-            <div className="pt-32 pb-20 container mx-auto text-center">
+            <div className="pt-48 pb-20 container mx-auto text-center">
                 <h2 className="text-2xl font-bold">অনুগ্রহ করে লগইন করুন</h2>
             </div>
         );
     }
 
     return (
-        <div className="pt-24 pb-20 min-h-screen bg-slate-50">
-            <div className="container mx-auto px-4 max-w-5xl">
+        <div className="bg-slate-50 min-h-screen">
+            {/* Dashboard Hero Section */}
+            <section className="relative pt-32 pb-32 md:pt-40 md:pb-40 overflow-hidden bg-slate-900">
+                <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] animate-float"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] bg-purple-600/10 rounded-full blur-[100px] animate-float-delayed"></div>
                 
-                {/* Header */}
-                <div className="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-slate-200 mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-blue-600 to-purple-600 opacity-10"></div>
+                <div className="container mx-auto px-4 relative z-10 text-center">
+                    <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
+                        স্বাগতম, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">{user.displayName}</span>
+                    </h1>
+                    <p className="text-slate-400">আপনার ড্যাশবোর্ড থেকে প্রোফাইল এবং আবেদন ম্যানেজ করুন</p>
+                </div>
+            </section>
+
+            <div className="container mx-auto px-4 max-w-5xl -mt-20 relative z-20 pb-20">
+                
+                {/* Profile Header Card */}
+                <div className="bg-white rounded-3xl p-6 md:p-10 shadow-lg border border-slate-200 mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-50"></div>
                     
                     <div className="relative">
                         <img src={user.photoURL || 'https://via.placeholder.com/150'} alt="Profile" className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg object-cover" />
@@ -86,7 +99,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                     </div>
                     
                     <div className="text-center md:text-left flex-1 relative z-10 pt-2 md:pt-4">
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">{user.displayName}</h1>
+                        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">{user.displayName}</h2>
                         <p className="text-slate-500 mb-4">{user.email}</p>
                         
                         <div className="flex flex-wrap justify-center md:justify-start gap-3">
@@ -124,7 +137,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                     {/* Content Area */}
                     <div className="md:col-span-3">
                         {activeTab === 'profile' && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 animate-fade-in">
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-xl font-bold text-slate-800">প্রোফাইল তথ্য</h3>
                                     {!isEditing && (
@@ -252,7 +265,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                         )}
 
                         {activeTab === 'applications' && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 animate-fade-in">
                                 <h3 className="text-xl font-bold text-slate-800 mb-6">আমার আবেদনসমূহ</h3>
                                 
                                 {applications.length === 0 ? (

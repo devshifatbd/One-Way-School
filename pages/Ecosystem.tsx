@@ -3,18 +3,22 @@ import { ArrowRight, BookOpen, UserCheck, Briefcase, Zap, Star, CheckCircle } fr
 
 const Ecosystem: React.FC = () => {
     return (
-        <div className="pt-20">
-            {/* Header */}
-            <div className="bg-slate-900 pt-20 pb-24 text-center text-white relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 to-slate-900"></div>
-                <div className="container mx-auto px-4 relative z-10">
-                    <span className="text-blue-400 font-bold tracking-wider text-sm uppercase">Roadmap to Success</span>
-                    <h1 className="text-4xl md:text-6xl font-bold mt-4 mb-6">আমাদের ইকোসিস্টেম</h1>
-                    <p className="text-lg text-slate-300 max-w-2xl mx-auto">
+        <div>
+            {/* Hero Section */}
+            <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-900">
+                <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] animate-float"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] bg-purple-600/20 rounded-full blur-[100px] animate-float-delayed"></div>
+                
+                <div className="container mx-auto px-4 relative z-10 text-center">
+                    <span className="text-blue-400 font-bold tracking-wider text-sm uppercase mb-4 block">Roadmap to Success</span>
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+                        আমাদের <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">ইকোসিস্টেম</span>
+                    </h1>
+                    <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
                         আমরা গতানুগতিক ট্রেনিং সেন্টারের মতো নই। এটি একটি কমপ্লিট জার্নি যা আপনাকে জিরো থেকে হিরো বানাতে সাহায্য করবে।
                     </p>
                 </div>
-            </div>
+            </section>
 
             {/* Program Roadmap (Copied from Home) */}
             <section className="py-16 md:py-24 bg-slate-50 relative">

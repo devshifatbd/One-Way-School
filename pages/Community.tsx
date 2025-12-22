@@ -73,17 +73,21 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
     };
 
     return (
-        <div className="pt-20">
-            {/* Header */}
-            <div className="bg-slate-900 py-20 text-center text-white relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                <div className="container mx-auto px-4 relative z-10">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-4">আমাদের কমিউনিটি</h1>
-                    <p className="text-lg text-slate-300 max-w-2xl mx-auto">
+        <div>
+            {/* Hero Section */}
+            <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-900">
+                <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] animate-float"></div>
+                <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] bg-purple-600/20 rounded-full blur-[100px] animate-float-delayed"></div>
+                
+                <div className="container mx-auto px-4 relative z-10 text-center">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
+                        আমাদের <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">কমিউনিটি</span>
+                    </h1>
+                    <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto font-light leading-relaxed">
                         শিক্ষার্থী এবং প্রফেশনালদের নিয়ে গড়া আমাদের এই বিশাল পরিবারে আপনাকে স্বাগতম।
                     </p>
                 </div>
-            </div>
+            </section>
 
             {/* Affiliate & Campus Ambassador Content */}
             <section id="affiliate" className="py-16 md:py-24 relative overflow-hidden bg-gradient-to-br from-slate-900 to-blue-900 text-white">
