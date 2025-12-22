@@ -100,14 +100,16 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                                             <LayoutDashboard size={14} /> Admin
                                         </Link>
                                     )}
-                                    {/* User Profile Trigger - Using div with onClick for better reliability */}
-                                    <div 
+                                    
+                                    {/* DASHBOARD TEXT BUTTON (Replaces Avatar) */}
+                                    <button 
                                         onClick={() => navigate('/dashboard')} 
-                                        className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:bg-slate-100 pl-1 pr-3 py-1 rounded-full transition-all cursor-pointer select-none"
+                                        className="flex items-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm"
                                     >
-                                        <img src={user.photoURL || 'https://via.placeholder.com/32'} alt="User" className="w-8 h-8 rounded-full border border-slate-300 object-cover" />
-                                        <span className="hidden sm:inline max-w-[100px] truncate">{user.displayName?.split(' ')[0]}</span>
-                                    </div>
+                                        <LayoutDashboard size={16} />
+                                        <span>ড্যাশবোর্ড</span>
+                                    </button>
+
                                     <button onClick={() => { logout(); navigate('/'); }} className="p-2 rounded-full bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 transition-colors" title="Logout">
                                         <LogOut size={18} />
                                     </button>
@@ -133,12 +135,14 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                             {user && (
                                 <div 
                                     onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }} 
-                                    className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl mb-2 cursor-pointer"
+                                    className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl mb-2 cursor-pointer shadow-sm active:scale-95 transition-transform"
                                 >
-                                    <img src={user.photoURL || 'https://via.placeholder.com/32'} alt="User" className="w-10 h-10 rounded-full border border-blue-200" />
+                                    <div className="bg-white p-2 rounded-full text-blue-600 shadow-sm">
+                                        <LayoutDashboard size={24} />
+                                    </div>
                                     <div>
-                                        <p className="font-bold text-slate-800">{user.displayName}</p>
-                                        <p className="text-xs text-slate-500">Dashboard & Profile</p>
+                                        <p className="font-bold text-slate-800 text-lg">ড্যাশবোর্ড</p>
+                                        <p className="text-xs text-slate-500">প্রোফাইল দেখুন</p>
                                     </div>
                                 </div>
                             )}
