@@ -1,0 +1,119 @@
+import React from 'react';
+import { Globe, Users, Briefcase, Target, Heart, Award, CheckCircle } from 'lucide-react';
+
+const About: React.FC = () => {
+    return (
+        <div className="pt-20">
+            {/* Page Header */}
+            <div className="bg-slate-900 py-20 text-center text-white relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                <div className="container mx-auto px-4 relative z-10">
+                    <h1 className="text-4xl md:text-6xl font-bold mb-4">আমাদের সম্পর্কে</h1>
+                    <p className="text-lg text-slate-300 max-w-2xl mx-auto">দক্ষতা, নেতৃত্ব এবং উদ্ভাবনের মাধ্যমে আমরা গড়ছি আগামীর বাংলাদেশ।</p>
+                </div>
+            </div>
+
+            {/* Our Story */}
+            <section className="py-16 md:py-24 bg-white">
+                <div className="container mx-auto px-4 max-w-6xl">
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <div className="relative">
+                            <div className="absolute -inset-4 bg-blue-100 rounded-3xl transform -rotate-3"></div>
+                            <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Team" className="relative rounded-3xl shadow-xl w-full" />
+                        </div>
+                        <div>
+                            <h2 className="text-3xl font-bold text-slate-900 mb-6">আমাদের গল্প</h2>
+                            <p className="text-slate-600 text-lg leading-relaxed mb-6">
+                                One Way School (OWS) এর যাত্রা শুরু হয় ২০২৩ সালে, একটি স্বপ্ন নিয়ে—বাংলাদেশের শিক্ষাব্যবস্থা এবং প্রফেশনাল জগতের মধ্যে থাকা বিশাল শূন্যতা পূরণ করা। আমরা দেখেছি হাজারো গ্র্যাজুয়েট সার্টিফিকেট নিয়ে বের হচ্ছে, কিন্তু ইন্ডাস্ট্রির প্রয়োজনীয় দক্ষতা তাদের নেই।
+                            </p>
+                            <p className="text-slate-600 text-lg leading-relaxed">
+                                সেই অভাব পূরণের লক্ষ্যেই আমরা তৈরি করেছি এমন একটি ইকোসিস্টেম, যেখানে একজন শিক্ষার্থী শুধুমাত্র শিখবে না, বরং হাতে-কলমে কাজ করে নিজেকে প্রফেশনাল হিসেবে গড়ে তুলবে।
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Mission & Vision */}
+            <section className="py-16 bg-slate-50">
+                <div className="container mx-auto px-4 max-w-6xl">
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <div className="bg-white p-10 rounded-3xl shadow-sm hover:shadow-xl transition-shadow border border-slate-100 group">
+                            <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <Target className="w-8 h-8 text-blue-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-4">আমাদের মিশন</h3>
+                            <p className="text-slate-600 leading-relaxed">
+                                প্রতিটি শিক্ষার্থীকে তাদের সুপ্ত প্রতিভা বিকাশে সহায়তা করা এবং সঠিক মেন্টরশিপের মাধ্যমে তাদের ক্যারিয়ারের পথে আত্মবিশ্বাসী করে তোলা। আমরা চাই বেকারত্ব দূর করে দক্ষ জনশক্তি তৈরি করতে।
+                            </p>
+                        </div>
+                        <div className="bg-white p-10 rounded-3xl shadow-sm hover:shadow-xl transition-shadow border border-slate-100 group">
+                            <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <Globe className="w-8 h-8 text-purple-600" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-4">আমাদের ভিশন</h3>
+                            <p className="text-slate-600 leading-relaxed">
+                                ২০৩০ সালের মধ্যে ১০,০০০+ দক্ষ প্রফেশনাল তৈরি করা যারা শুধু দেশেই নয়, গ্লোবাল মার্কেটেও বাংলাদেশের প্রতিনিধিত্ব করবে। একটি স্বাবলম্বী এবং স্কিলড বাংলাদেশ গড়া আমাদের লক্ষ্য।
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Stats */}
+            <section className="py-16 bg-blue-900 text-white">
+                <div className="container mx-auto px-4 max-w-6xl">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                        <div>
+                            <div className="text-4xl md:text-5xl font-bold mb-2">৫০০+</div>
+                            <div className="text-blue-200">অ্যালামনাই</div>
+                        </div>
+                        <div>
+                            <div className="text-4xl md:text-5xl font-bold mb-2">৫০+</div>
+                            <div className="text-blue-200">মেন্টর</div>
+                        </div>
+                        <div>
+                            <div className="text-4xl md:text-5xl font-bold mb-2">২০+</div>
+                            <div className="text-blue-200">পার্টনার কোম্পানি</div>
+                        </div>
+                        <div>
+                            <div className="text-4xl md:text-5xl font-bold mb-2">৯৫%</div>
+                            <div className="text-blue-200">সাফল্যের হার</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Why Choose Us */}
+            <section className="py-20 bg-white">
+                <div className="container mx-auto px-4 max-w-6xl text-center">
+                    <h2 className="text-3xl font-bold text-slate-900 mb-12">কেন আমরা আলাদা?</h2>
+                    <div className="grid md:grid-cols-3 gap-8">
+                        <div className="p-6">
+                            <div className="w-16 h-16 mx-auto bg-green-50 rounded-full flex items-center justify-center mb-4">
+                                <Briefcase className="w-8 h-8 text-green-600" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-3">বাস্তবমুখী শিক্ষা</h3>
+                            <p className="text-slate-500">আমরা থিওরির চেয়ে প্র্যাক্টিক্যাল প্রজেক্টে বেশি জোর দিই।</p>
+                        </div>
+                        <div className="p-6">
+                            <div className="w-16 h-16 mx-auto bg-orange-50 rounded-full flex items-center justify-center mb-4">
+                                <Users className="w-8 h-8 text-orange-600" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-3">শক্তিশালী নেটওয়ার্ক</h3>
+                            <p className="text-slate-500">আমাদের কমিউনিটিতে যুক্ত হয়ে আপনি পাবেন ইন্ডাস্ট্রি এক্সপার্টদের সান্নিধ্য।</p>
+                        </div>
+                        <div className="p-6">
+                            <div className="w-16 h-16 mx-auto bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                                <Award className="w-8 h-8 text-blue-600" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-3">লাইফটাইম সাপোর্ট</h3>
+                            <p className="text-slate-500">কোর্স শেষ হলেও আমাদের সম্পর্ক শেষ হয় না। আমরা সবসময় পাশে আছি।</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+};
+export default About;
