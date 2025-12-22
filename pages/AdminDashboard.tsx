@@ -147,19 +147,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         setFormLoading(true);
         
         try {
-            const cleanedJob = sanitizeData({
-                ...newJob,
+            // Force attach auth info outside sanitize to ensure it's never stripped
+            const jobData = {
+                ...sanitizeData(newJob),
                 userId: user.uid,
-                userEmail: user.email
-            });
-            await saveJob(cleanedJob);
+                userEmail: user.email || '' 
+            };
+            
+            await saveJob(jobData);
             setNewJob(initialJobState);
             setIsModalOpen(false);
             await fetchData();
             alert("চাকরি সফলভাবে পোস্ট করা হয়েছে!");
         } catch (error: any) {
             console.error("Error saving job:", error);
-            alert(`চাকরি সেভ করা যায়নি।\nকারণ: ${error.message}\n\nপরামর্শ: Firebase Console > Firestore > Rules চেক করুন।`);
+            alert(`চাকরি সেভ করা যায়নি।\nএরর: ${error.message}\n\nঅনুগ্রহ করে ফায়ারবেজ কনসোলে রুলস চেক করুন।`);
         }
         setFormLoading(false);
     };
@@ -169,19 +171,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         if (!user) return;
         setFormLoading(true);
         try {
-            const cleanedBlog = sanitizeData({
-                ...newBlog,
+            const blogData = {
+                ...sanitizeData(newBlog),
                 userId: user.uid,
-                userEmail: user.email
-            });
-            await saveBlogPost(cleanedBlog);
+                userEmail: user.email || ''
+            };
+            
+            await saveBlogPost(blogData);
             setNewBlog({ title: '', excerpt: '', author: 'Admin', imageUrl: '', content: '' });
             setIsModalOpen(false);
             await fetchData();
             alert("ব্লগ সফলভাবে পোস্ট করা হয়েছে!");
         } catch (error: any) {
             console.error("Error saving blog:", error);
-            alert(`ব্লগ সেভ করা যায়নি।\nকারণ: ${error.message}`);
+            alert(`ব্লগ সেভ করা যায়নি।\nএরর: ${error.message}`);
         }
         setFormLoading(false);
     };
@@ -191,19 +194,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         if (!user) return;
         setFormLoading(true);
         try {
-            const cleanedCourse = sanitizeData({
-                ...newCourse,
+            const courseData = {
+                ...sanitizeData(newCourse),
                 userId: user.uid,
-                userEmail: user.email
-            });
-            await saveCourse(cleanedCourse);
+                userEmail: user.email || ''
+            };
+            
+            await saveCourse(courseData);
             setNewCourse({ title: '', instructor: '', price: '', duration: '', imageUrl: '', category: '' });
             setIsModalOpen(false);
             await fetchData();
             alert("কোর্স সফলভাবে যুক্ত করা হয়েছে!");
         } catch (error: any) {
             console.error("Error saving course:", error);
-            alert(`কোর্স সেভ করা যায়নি।\nকারণ: ${error.message}`);
+            alert(`কোর্স সেভ করা যায়নি।\nএরর: ${error.message}`);
         }
         setFormLoading(false);
     };
