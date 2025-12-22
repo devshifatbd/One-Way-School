@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { HashRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './services/firebase';
 import { User } from './types';
@@ -16,6 +16,19 @@ import About from './pages/About';
 import Ecosystem from './pages/Ecosystem';
 import Blog from './pages/Blog';
 import Community from './pages/Community';
+
+// Layout for Public Pages (Includes Navbar & Footer)
+const PublicLayout = ({ user }: { user: User | null }) => {
+    return (
+        <div className="flex flex-col min-h-screen">
+            <Navbar user={user} />
+            <main className="flex-grow">
+                <Outlet />
+            </main>
+            <Footer />
+        </div>
+    );
+};
 
 const App: React.FC = () => {
     const [user, setUser] = useState<User | null>(null);
@@ -45,21 +58,20 @@ const App: React.FC = () => {
 
     return (
         <HashRouter>
-            <div className="flex flex-col min-h-screen">
-                <Navbar user={user} />
-                <main className="flex-grow">
-                    <Routes>
-                        <Route path="/" element={<Home user={user} />} />
-                        <Route path="/about" element={<About />} />
-                        <Route path="/ecosystem" element={<Ecosystem />} />
-                        <Route path="/community" element={<Community user={user} />} />
-                        <Route path="/jobs" element={<JobPortal user={user} />} />
-                        <Route path="/blog" element={<Blog />} />
-                        <Route path="/admin" element={<AdminDashboard user={user} />} />
-                    </Routes>
-                </main>
-                <Footer />
-            </div>
+            <Routes>
+                {/* Public Routes with Navbar & Footer */}
+                <Route element={<PublicLayout user={user} />}>
+                    <Route path="/" element={<Home user={user} />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/ecosystem" element={<Ecosystem />} />
+                    <Route path="/community" element={<Community user={user} />} />
+                    <Route path="/jobs" element={<JobPortal user={user} />} />
+                    <Route path="/blog" element={<Blog />} />
+                </Route>
+
+                {/* Admin Route without Public Navbar/Footer */}
+                <Route path="/admin" element={<AdminDashboard user={user} />} />
+            </Routes>
         </HashRouter>
     );
 };

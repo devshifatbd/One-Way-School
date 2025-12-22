@@ -1,69 +1,28 @@
-import React, { useState } from 'react';
-import { Search, MapPin, Briefcase, DollarSign, Clock, Filter, ChevronDown, CheckSquare, Square } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, MapPin, Briefcase, DollarSign, Clock, Filter, CheckSquare, Square, ChevronDown, ChevronUp } from 'lucide-react';
 import { Job, User } from '../types';
-import { signInWithGoogle, saveLead } from '../services/firebase';
-
-const MOCK_JOBS: Job[] = [
-    {
-        id: '1',
-        title: 'Junior Frontend Developer',
-        company: 'TechNext Limited',
-        location: 'Dhaka, Bangladesh',
-        type: 'Full-time',
-        salary: '25k - 35k BDT',
-        postedDate: '2 days ago',
-        description: 'React, Tailwind, TypeScript'
-    },
-    {
-        id: '2',
-        title: 'Sales Executive',
-        company: 'One Way School',
-        location: 'Remote',
-        type: 'Part-time',
-        salary: '15k + Commission',
-        postedDate: '1 week ago',
-        description: 'Sales, EdTech, Communication'
-    },
-    {
-        id: '3',
-        title: 'Content Writer Intern',
-        company: 'Creative IT',
-        location: 'Dhaka',
-        type: 'Internship',
-        salary: '8k BDT',
-        postedDate: '3 days ago',
-        description: 'Bangla Writing, SEO Basics'
-    },
-    {
-        id: '4',
-        title: 'MERN Stack Developer',
-        company: 'SoftPark',
-        location: 'Sylhet',
-        type: 'Full-time',
-        salary: '45k - 60k BDT',
-        postedDate: '5 days ago',
-        description: 'Node.js, MongoDB, React'
-    },
-    {
-        id: '5',
-        title: 'Digital Marketing Executive',
-        company: 'BrandFlow',
-        location: 'Chittagong',
-        type: 'Full-time',
-        salary: '20k - 30k BDT',
-        postedDate: 'Today',
-        description: 'Facebook Ads, Google Analytics'
-    }
-];
+import { saveLead, getJobs } from '../services/firebase';
 
 interface JobPortalProps {
     user: User | null;
 }
 
 const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState<string[]>([]);
+    const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
     
+    useEffect(() => {
+        const fetchJobs = async () => {
+            const data = await getJobs();
+            setJobs(data as Job[]);
+            setLoading(false);
+        };
+        fetchJobs();
+    }, []);
+
     const toggleFilter = (type: string) => {
         if (filterType.includes(type)) {
             setFilterType(filterType.filter(t => t !== type));
@@ -72,10 +31,10 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
         }
     };
 
-    const filteredJobs = MOCK_JOBS.filter(job => {
+    const filteredJobs = jobs.filter(job => {
         const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             job.company.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filterType.length === 0 || filterType.includes(job.type);
+        const matchesFilter = filterType.length === 0 || filterType.includes(job.employmentStatus);
         return matchesSearch && matchesFilter;
     });
 
@@ -102,6 +61,8 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
         }
     };
 
+    if (loading) return <div className="h-screen flex items-center justify-center">লোডিং...</div>;
+
     return (
         <div className="pt-24 pb-16 bg-slate-100 min-h-screen">
             {/* Header & Search */}
@@ -123,7 +84,6 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
                             <Search size={18} /> খুঁজুন
                         </button>
                     </div>
-                    <p className="text-slate-400 text-center mt-4 text-sm">জনপ্রিয়: ফ্রন্টএন্ড, সেলস, গ্রাফিক্স ডিজাইন</p>
                 </div>
             </div>
 
@@ -138,7 +98,7 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
                         
                         <div className="space-y-3">
                             <h4 className="font-semibold text-sm text-slate-500">চাকরির ধরণ</h4>
-                            {['Full-time', 'Part-time', 'Internship', 'Remote'].map(type => (
+                            {['Full-time', 'Part-time', 'Internship', 'Contractual'].map(type => (
                                 <div key={type} className="flex items-center gap-2 cursor-pointer group" onClick={() => toggleFilter(type)}>
                                     {filterType.includes(type) ? 
                                         <CheckSquare size={18} className="text-blue-600" /> : 
@@ -149,45 +109,96 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
                             ))}
                         </div>
                     </div>
-
-                    <div className="bg-gradient-to-br from-blue-600 to-violet-600 rounded-xl p-6 text-white text-center shadow-lg">
-                        <h3 className="font-bold text-lg mb-2">সিভি রিভিউ করান</h3>
-                        <p className="text-sm text-blue-100 mb-4">এক্সপার্টদের দিয়ে আপনার সিভি যাচাই করে নিন।</p>
-                        <button className="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-bold w-full hover:bg-blue-50">বুক করুন</button>
-                    </div>
                 </div>
 
                 {/* Job Listings */}
                 <div className="lg:col-span-3 space-y-4">
                     <div className="flex justify-between items-center mb-2">
                         <h2 className="font-bold text-slate-700">সর্বমোট {filteredJobs.length} টি চাকরি পাওয়া গেছে</h2>
-                        <div className="flex items-center gap-2 text-sm text-slate-500">
-                            সর্ট করুন: <span className="font-bold text-slate-700 cursor-pointer">নতুন</span>
-                        </div>
                     </div>
 
                     {filteredJobs.map(job => (
-                        <div key={job.id} className="bg-white p-5 rounded-xl border border-slate-200 hover:shadow-lg hover:border-blue-200 transition-all group">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-bold text-blue-700 mb-1 group-hover:underline cursor-pointer">{job.title}</h3>
-                                    <div className="text-slate-900 font-semibold text-sm mb-2">{job.company}</div>
-                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
-                                        <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded"><MapPin size={14} /> {job.location}</span>
-                                        <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded"><DollarSign size={14} /> {job.salary}</span>
-                                        <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded text-blue-600 font-medium"><Briefcase size={14} /> {job.type}</span>
+                        <div key={job.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow">
+                            {/* Summary Section */}
+                            <div className="p-5 cursor-pointer" onClick={() => setExpandedJobId(expandedJobId === job.id ? null : job.id!)}>
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="flex-1">
+                                        <h3 className="text-xl font-bold text-blue-700 mb-1 hover:underline">{job.title}</h3>
+                                        <div className="text-slate-900 font-semibold text-base mb-2">{job.company}</div>
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
+                                            <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-100"><MapPin size={14} /> {job.location}</span>
+                                            <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-100"><DollarSign size={14} /> {job.salary}</span>
+                                            <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 font-medium"><Briefcase size={14} /> {job.employmentStatus}</span>
+                                        </div>
                                     </div>
-                                    <p className="mt-3 text-sm text-slate-500 line-clamp-2">{job.description}</p>
-                                </div>
-                                <div className="flex flex-col items-end gap-3 min-w-[140px]">
-                                    <button onClick={() => handleApply(job)} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold text-sm w-full hover:bg-blue-700 transition shadow-md shadow-blue-200">
-                                        আবেদন করুন
-                                    </button>
-                                    <span className="flex items-center gap-1 text-xs text-slate-400">
-                                        <Clock size={12} /> {job.postedDate}
-                                    </span>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <span className="flex items-center gap-1 text-xs text-red-500 font-medium bg-red-50 px-2 py-1 rounded-full">
+                                            <Clock size={12} /> Deadline: {job.deadline || 'N/A'}
+                                        </span>
+                                        {expandedJobId === job.id ? <ChevronUp className="text-slate-400"/> : <ChevronDown className="text-slate-400"/>}
+                                    </div>
                                 </div>
                             </div>
+
+                            {/* Details Expanded Section */}
+                            {expandedJobId === job.id && (
+                                <div className="px-5 pb-5 pt-0 animate-fade-in border-t border-slate-100">
+                                    <div className="py-4 space-y-6">
+                                        
+                                        {job.jobContext && (
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 mb-2">Job Context</h4>
+                                                <p className="text-slate-600 text-sm whitespace-pre-line">{job.jobContext}</p>
+                                            </div>
+                                        )}
+
+                                        {job.responsibilities && (
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 mb-2">Job Responsibilities</h4>
+                                                <p className="text-slate-600 text-sm whitespace-pre-line">{job.responsibilities}</p>
+                                            </div>
+                                        )}
+
+                                        <div className="grid md:grid-cols-2 gap-6">
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 mb-2">Workplace</h4>
+                                                <p className="text-slate-600 text-sm">{job.workplace || 'Not Specified'}</p>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 mb-2">Employment Status</h4>
+                                                <p className="text-slate-600 text-sm">{job.employmentStatus}</p>
+                                            </div>
+                                        </div>
+
+                                        {job.educationalRequirements && (
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 mb-2">Educational Requirements</h4>
+                                                <p className="text-slate-600 text-sm whitespace-pre-line">{job.educationalRequirements}</p>
+                                            </div>
+                                        )}
+
+                                        {job.experienceRequirements && (
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 mb-2">Experience Requirements</h4>
+                                                <p className="text-slate-600 text-sm whitespace-pre-line">{job.experienceRequirements}</p>
+                                            </div>
+                                        )}
+                                        
+                                        {job.compensationAndBenefits && (
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 mb-2">Compensation & Other Benefits</h4>
+                                                <p className="text-slate-600 text-sm whitespace-pre-line">{job.compensationAndBenefits}</p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="pt-4 flex justify-center border-t border-slate-100">
+                                        <button onClick={(e) => { e.stopPropagation(); handleApply(job); }} className="bg-blue-600 text-white px-10 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 transform hover:-translate-y-1">
+                                            আবেদন করুন
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
 

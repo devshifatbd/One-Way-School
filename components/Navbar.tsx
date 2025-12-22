@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, ArrowRight, User as UserIcon, LogOut, Lock, Mail, Chrome } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, Mail, Chrome, LayoutDashboard } from 'lucide-react';
 import { User } from '../types';
 import { signInWithGoogle, logout, loginWithEmail, registerWithEmail } from '../services/firebase';
 
@@ -11,19 +11,20 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ user }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-    const [loginTab, setLoginTab] = useState<'user' | 'admin'>('user');
     const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
     
     // Auth Form States
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [adminUser, setAdminUser] = useState('');
-    const [adminPass, setAdminPass] = useState('');
     const [error, setError] = useState('');
 
     const location = useLocation();
     const navigate = useNavigate();
+
+    // Admin Emails List (Should match AdminDashboard)
+    const ADMIN_EMAILS = ['onewayschool.bd@gmail.com', 'onewayschool.bd@gamil.com'];
+    const isAdmin = user && user.email && ADMIN_EMAILS.includes(user.email);
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
@@ -45,7 +46,10 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
         try {
             await signInWithGoogle();
             setIsLoginModalOpen(false);
-        } catch (e) { setError("Google Login Failed"); }
+        } catch (e: any) { 
+            console.error(e);
+            setError(e.message || "Google Login Failed. Check console."); 
+        }
     };
 
     const handleUserAuth = async (e: React.FormEvent) => {
@@ -59,17 +63,8 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
             }
             setIsLoginModalOpen(false);
         } catch (e: any) {
+            console.error(e);
             setError(e.message || "Authentication failed");
-        }
-    };
-
-    const handleAdminLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (adminUser === 'ows2025' && adminPass === '123456') {
-            setIsLoginModalOpen(false);
-            navigate('/admin', { state: { authenticated: true } });
-        } else {
-            setError("ভুল ইউজারনেম বা পাসওয়ার্ড");
         }
     };
 
@@ -98,9 +93,14 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                         <div className="flex items-center gap-3">
                             {user ? (
                                 <div className="flex items-center gap-3">
-                                    <Link to="/admin" className="hidden md:flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-blue-600">
+                                    {isAdmin && (
+                                        <Link to="/admin" className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-slate-800 transition-colors">
+                                            <LayoutDashboard size={14} /> Admin
+                                        </Link>
+                                    )}
+                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
                                         <img src={user.photoURL || 'https://via.placeholder.com/32'} alt="User" className="w-8 h-8 rounded-full border border-slate-300 object-cover" />
-                                    </Link>
+                                    </div>
                                     <button onClick={logout} className="p-2 rounded-full bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 transition-colors" title="Logout">
                                         <LogOut size={18} />
                                     </button>
@@ -111,12 +111,6 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                                 </button>
                             )}
 
-                            {!user && (
-                                <button onClick={() => scrollToSection('contact')} className="bg-slate-900 text-white px-5 py-2.5 rounded-full font-bold text-sm shadow-lg shadow-slate-900/20 hover:shadow-slate-900/40 hover:scale-105 transition-all duration-300 flex items-center gap-2">
-                                    জয়েন করুন <ArrowRight size={16} />
-                                </button>
-                            )}
-                            
                             {/* Mobile Toggle */}
                             <button className="md:hidden w-10 h-10 flex items-center justify-center bg-slate-100 rounded-full text-slate-800 hover:bg-slate-200 transition-colors" onClick={toggleMenu}>
                                 {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -135,10 +129,11 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                             <Link to="/community" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">কমিউনিটি</Link>
                             <Link to="/jobs" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">জবস</Link>
                             <Link to="/blog" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">ব্লগ</Link>
-                            {user && (
-                                <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-blue-600 bg-blue-50 p-3 rounded-xl">এডমিন ড্যাশবোর্ড</Link>
+                            {isAdmin && (
+                                <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-bold text-white bg-slate-900 p-3 rounded-xl flex items-center gap-2">
+                                    <LayoutDashboard size={18} /> এডমিন ড্যাশবোর্ড
+                                </Link>
                             )}
-                            {!user && <button onClick={() => scrollToSection('contact')} className="text-left text-base font-medium text-blue-600 bg-blue-50 p-3 rounded-xl">যোগাযোগ করুন</button>}
                         </div>
                     </div>
                 )}
@@ -150,71 +145,41 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                     <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative">
                         <button onClick={() => setIsLoginModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={24}/></button>
                         
-                        <div className="flex border-b">
-                            <button 
-                                onClick={() => { setLoginTab('user'); setError(''); }} 
-                                className={`flex-1 py-4 font-bold text-sm ${loginTab === 'user' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-500 hover:bg-slate-50'}`}
-                            >
-                                User Login
-                            </button>
-                            <button 
-                                onClick={() => { setLoginTab('admin'); setError(''); }} 
-                                className={`flex-1 py-4 font-bold text-sm ${loginTab === 'admin' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-slate-500 hover:bg-slate-50'}`}
-                            >
-                                Admin Login
-                            </button>
-                        </div>
-
                         <div className="p-8">
-                            {loginTab === 'user' ? (
-                                <div className="space-y-4">
-                                    <h3 className="text-xl font-bold text-center text-slate-800 mb-6">
-                                        {authMode === 'login' ? 'অ্যাকাউন্টে লগইন করুন' : 'নতুন অ্যাকাউন্ট তৈরি করুন'}
-                                    </h3>
+                            <div className="space-y-4">
+                                <h3 className="text-xl font-bold text-center text-slate-800 mb-6">
+                                    {authMode === 'login' ? 'অ্যাকাউন্টে লগইন করুন' : 'নতুন অ্যাকাউন্ট তৈরি করুন'}
+                                </h3>
+                                
+                                <form onSubmit={handleUserAuth} className="space-y-4">
+                                    {authMode === 'register' && (
+                                        <input type="text" placeholder="আপনার নাম" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={name} onChange={e => setName(e.target.value)} required />
+                                    )}
+                                    <input type="email" placeholder="ইমেইল" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={email} onChange={e => setEmail(e.target.value)} required />
+                                    <input type="password" placeholder="পাসওয়ার্ড" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={password} onChange={e => setPassword(e.target.value)} required />
                                     
-                                    <form onSubmit={handleUserAuth} className="space-y-4">
-                                        {authMode === 'register' && (
-                                            <input type="text" placeholder="আপনার নাম" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={name} onChange={e => setName(e.target.value)} required />
-                                        )}
-                                        <input type="email" placeholder="ইমেইল" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={email} onChange={e => setEmail(e.target.value)} required />
-                                        <input type="password" placeholder="পাসওয়ার্ড" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={password} onChange={e => setPassword(e.target.value)} required />
-                                        
-                                        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-                                        <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
-                                            {authMode === 'login' ? <><UserIcon size={18}/> লগইন</> : <><Mail size={18}/> রেজিস্টার</>}
-                                        </button>
-                                    </form>
-
-                                    <div className="relative my-6">
-                                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                                        <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-500">অথবা</span></div>
-                                    </div>
-
-                                    <button onClick={handleGoogleLogin} className="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
-                                        <Chrome size={18} className="text-blue-600"/> গুগল দিয়ে লগইন
-                                    </button>
-
-                                    <div className="text-center mt-4">
-                                        <button onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setError(''); }} className="text-blue-600 font-bold text-sm hover:underline">
-                                            {authMode === 'login' ? 'অ্যাকাউন্ট নেই? রেজিস্টার করুন' : 'লগইন পেইজে ফিরে যান'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <form onSubmit={handleAdminLogin} className="space-y-4">
-                                    <div className="text-center mb-6">
-                                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <Lock className="w-8 h-8 text-red-500"/>
-                                        </div>
-                                        <h3 className="text-xl font-bold text-slate-800">এডমিন এক্সেস</h3>
-                                    </div>
-                                    <input type="text" placeholder="ইউজারনেম" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-red-500" value={adminUser} onChange={e => setAdminUser(e.target.value)} />
-                                    <input type="password" placeholder="পাসওয়ার্ড" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-red-500" value={adminPass} onChange={e => setAdminPass(e.target.value)} />
                                     {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-                                    <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl transition">লগইন করুন</button>
+
+                                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
+                                        {authMode === 'login' ? <><UserIcon size={18}/> লগইন</> : <><Mail size={18}/> রেজিস্টার</>}
+                                    </button>
                                 </form>
-                            )}
+
+                                <div className="relative my-6">
+                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                                    <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-500">অথবা</span></div>
+                                </div>
+
+                                <button onClick={handleGoogleLogin} className="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
+                                    <Chrome size={18} className="text-blue-600"/> গুগল দিয়ে লগইন
+                                </button>
+
+                                <div className="text-center mt-4">
+                                    <button onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setError(''); }} className="text-blue-600 font-bold text-sm hover:underline">
+                                        {authMode === 'login' ? 'অ্যাকাউন্ট নেই? রেজিস্টার করুন' : 'লগইন পেইজে ফিরে যান'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

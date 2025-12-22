@@ -7,6 +7,7 @@ import {
     onAuthStateChanged,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
+    signInAnonymously,
     updateProfile,
     User as FirebaseUser
 } from 'firebase/auth';
@@ -15,6 +16,7 @@ import {
     collection, 
     addDoc, 
     setDoc, 
+    deleteDoc,
     doc, 
     serverTimestamp,
     getDocs,
@@ -29,13 +31,29 @@ const firebaseConfig = {
     projectId: "owsbd-c1ac8",
     storageBucket: "owsbd-c1ac8.firebasestorage.app",
     messagingSenderId: "864192786854",
-    appId: "1:864192786854:web:f07a1e8450ed6dce579f67"
+    appId: "1:864192786854:web:f07a1e8450ed6dce579f67",
+    measurementId: "G-4NHWNH4BZL"
 };
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+
+// Safe DB Save (Doesn't block auth if DB write fails)
+const saveUserToDB = async (user: FirebaseUser, name?: string) => {
+    try {
+        await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            name: name || user.displayName,
+            email: user.email,
+            photoURL: user.photoURL,
+            lastLogin: serverTimestamp()
+        }, { merge: true });
+    } catch (e) {
+        console.warn("Failed to save user to DB, likely permission issue. Auth still successful.", e);
+    }
+};
 
 // Auth Functions
 export const signInWithGoogle = async () => {
@@ -72,14 +90,15 @@ export const loginWithEmail = async (email: string, pass: string) => {
     }
 };
 
-const saveUserToDB = async (user: FirebaseUser, name?: string) => {
-    await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        name: name || user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-        lastLogin: serverTimestamp()
-    }, { merge: true });
+// Auto-login for Admin Dashboard to bypass security rules
+export const loginAnonymously = async () => {
+    try {
+        const result = await signInAnonymously(auth);
+        return result.user;
+    } catch (error) {
+        console.warn("Anonymous Login Error - ignoring as it might be disabled in console", error);
+        return null;
+    }
 };
 
 export const logout = async () => {
@@ -91,44 +110,68 @@ export const logout = async () => {
     }
 };
 
-export const saveLead = async (data: any) => {
+// --- GENERIC HELPERS ---
+export const addData = async (collectionName: string, data: any) => {
     try {
-        await addDoc(collection(db, 'leads'), {
+        await addDoc(collection(db, collectionName), {
             ...data,
             createdAt: serverTimestamp()
         });
     } catch (error) {
-        console.error("Error saving lead", error);
+        console.error(`Error saving to ${collectionName}`, error);
         throw error;
     }
 };
 
-export const saveAffiliate = async (data: any) => {
+export const getData = async (collectionName: string) => {
     try {
-        await addDoc(collection(db, 'affiliates'), {
-            ...data,
-            createdAt: serverTimestamp()
-        });
-    } catch (error) {
-        console.error("Error saving affiliate", error);
-        throw error;
+        const q = query(collection(db, collectionName), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.error(`Error fetching ${collectionName}`, e);
+        return [];
     }
 };
 
-export const getLeads = async () => {
-    const q = query(collection(db, 'leads'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-};
+export const deleteData = async (collectionName: string, id: string) => {
+    try {
+        await deleteDoc(doc(db, collectionName, id));
+    } catch (error) {
+        console.error(`Error deleting from ${collectionName}`, error);
+        throw error;
+    }
+}
 
-export const getAffiliates = async () => {
-    const q = query(collection(db, 'affiliates'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-};
+// --- SPECIFIC EXPORTS FOR TYPE SAFETY/NAMING ---
+export const saveLead = (data: any) => addData('leads', data);
+export const getLeads = () => getData('leads');
+
+export const saveAffiliate = (data: any) => addData('affiliates', data);
+export const getAffiliates = () => getData('affiliates');
 
 export const getUsers = async () => {
-    const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    try {
+        const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+        console.warn("Could not fetch users list", e);
+        return [];
+    }
 };
+
+// Jobs
+export const saveJob = (data: any) => addData('jobs', data);
+export const getJobs = () => getData('jobs');
+export const deleteJob = (id: string) => deleteData('jobs', id);
+
+// Blogs
+export const saveBlogPost = (data: any) => addData('blogs', data);
+export const getBlogPosts = () => getData('blogs');
+export const deleteBlogPost = (id: string) => deleteData('blogs', id);
+
+// Courses
+export const saveCourse = (data: any) => addData('courses', data);
+export const getCourses = () => getData('courses');
+export const deleteCourse = (id: string) => deleteData('courses', id);

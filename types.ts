@@ -7,23 +7,44 @@ export interface User {
 }
 
 export interface Job {
-    id: string;
+    id?: string;
     title: string;
     company: string;
+    vacancy?: string; // New
+    deadline?: string; // New
+    jobContext?: string; // New
+    responsibilities?: string; // New
+    employmentStatus: 'Full-time' | 'Part-time' | 'Contractual' | 'Internship' | 'Freelance';
+    workplace?: 'Work at office' | 'Work from home' | 'Hybrid'; // New
+    educationalRequirements?: string; // New
+    experienceRequirements?: string; // New
+    additionalRequirements?: string; // New
     location: string;
-    type: 'Full-time' | 'Part-time' | 'Internship' | 'Remote';
     salary: string;
-    postedDate: string;
-    description: string;
+    compensationAndBenefits?: string; // New
+    postedDate?: any; 
+    description?: string; // Summary
+    applyLink?: string; 
 }
 
 export interface BlogPost {
-    id: string;
+    id?: string;
     title: string;
     excerpt: string;
     author: string;
-    date: string;
+    date?: any; // Timestamp
     imageUrl: string;
+    content?: string; // Full content
+}
+
+export interface Course {
+    id?: string;
+    title: string;
+    instructor: string;
+    price: string;
+    duration: string;
+    imageUrl: string;
+    category: string;
 }
 
 export interface Lead {
@@ -51,4 +72,5 @@ export interface Affiliate {
     imageUrl?: string;
     createdAt: any;
     userId?: string;
+    source?: string;
 }
