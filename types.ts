@@ -1,3 +1,4 @@
+
 export interface User {
     uid: string;
     displayName: string | null;
@@ -10,21 +11,23 @@ export interface Job {
     id?: string;
     title: string;
     company: string;
-    vacancy?: string; // New
-    deadline?: string; // New
-    jobContext?: string; // New
-    responsibilities?: string; // New
+    vacancy?: string; 
+    deadline?: string; 
+    jobContext?: string; 
+    responsibilities?: string; 
     employmentStatus: 'Full-time' | 'Part-time' | 'Contractual' | 'Internship' | 'Freelance';
-    workplace?: 'Work at office' | 'Work from home' | 'Hybrid'; // New
-    educationalRequirements?: string; // New
-    experienceRequirements?: string; // New
-    additionalRequirements?: string; // New
+    workplace?: 'Work at office' | 'Work from home' | 'Hybrid'; 
+    educationalRequirements?: string; 
+    experienceRequirements?: string; 
+    additionalRequirements?: string; 
     location: string;
     salary: string;
-    compensationAndBenefits?: string; // New
+    compensationAndBenefits?: string; 
     postedDate?: any; 
-    description?: string; // Summary
-    applyLink?: string; 
+    description?: string; 
+    applyLink?: string;
+    userId?: string;     // Added for Security Rules
+    userEmail?: string;  // Added for Security Rules
 }
 
 export interface BlogPost {
@@ -32,9 +35,11 @@ export interface BlogPost {
     title: string;
     excerpt: string;
     author: string;
-    date?: any; // Timestamp
+    date?: any; 
     imageUrl: string;
-    content?: string; // Full content
+    content?: string;
+    userId?: string;     // Added for Security Rules
+    userEmail?: string;  // Added for Security Rules
 }
 
 export interface Course {
@@ -45,6 +50,8 @@ export interface Course {
     duration: string;
     imageUrl: string;
     category: string;
+    userId?: string;     // Added for Security Rules
+    userEmail?: string;  // Added for Security Rules
 }
 
 export interface Lead {
@@ -54,7 +61,7 @@ export interface Lead {
     email?: string;
     profession: string;
     goal: string;
-    details: any; // studentInfo or jobInfo
+    details: any; 
     imageUrl?: string;
     createdAt: any;
     userId?: string;

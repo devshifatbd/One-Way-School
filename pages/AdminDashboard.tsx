@@ -143,10 +143,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     // --- SAVE HANDLERS ---
     const handleAddJob = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
         setFormLoading(true);
         
         try {
-            const cleanedJob = sanitizeData(newJob);
+            const cleanedJob = sanitizeData({
+                ...newJob,
+                userId: user.uid,
+                userEmail: user.email
+            });
             await saveJob(cleanedJob);
             setNewJob(initialJobState);
             setIsModalOpen(false);
@@ -154,16 +159,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             alert("চাকরি সফলভাবে পোস্ট করা হয়েছে!");
         } catch (error: any) {
             console.error("Error saving job:", error);
-            alert(`চাকরি সেভ করা যায়নি। এরর: ${error.message || "Permission Denied"}`);
+            alert(`চাকরি সেভ করা যায়নি।\nকারণ: ${error.message}\n\nপরামর্শ: Firebase Console > Firestore > Rules চেক করুন।`);
         }
         setFormLoading(false);
     };
 
     const handleAddBlog = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
         setFormLoading(true);
         try {
-            const cleanedBlog = sanitizeData(newBlog);
+            const cleanedBlog = sanitizeData({
+                ...newBlog,
+                userId: user.uid,
+                userEmail: user.email
+            });
             await saveBlogPost(cleanedBlog);
             setNewBlog({ title: '', excerpt: '', author: 'Admin', imageUrl: '', content: '' });
             setIsModalOpen(false);
@@ -171,16 +181,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             alert("ব্লগ সফলভাবে পোস্ট করা হয়েছে!");
         } catch (error: any) {
             console.error("Error saving blog:", error);
-            alert(`ব্লগ সেভ করা যায়নি। এরর: ${error.message}`);
+            alert(`ব্লগ সেভ করা যায়নি।\nকারণ: ${error.message}`);
         }
         setFormLoading(false);
     };
 
     const handleAddCourse = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!user) return;
         setFormLoading(true);
         try {
-            const cleanedCourse = sanitizeData(newCourse);
+            const cleanedCourse = sanitizeData({
+                ...newCourse,
+                userId: user.uid,
+                userEmail: user.email
+            });
             await saveCourse(cleanedCourse);
             setNewCourse({ title: '', instructor: '', price: '', duration: '', imageUrl: '', category: '' });
             setIsModalOpen(false);
@@ -188,7 +203,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             alert("কোর্স সফলভাবে যুক্ত করা হয়েছে!");
         } catch (error: any) {
             console.error("Error saving course:", error);
-            alert(`কোর্স সেভ করা যায়নি। এরর: ${error.message}`);
+            alert(`কোর্স সেভ করা যায়নি।\nকারণ: ${error.message}`);
         }
         setFormLoading(false);
     };
@@ -201,7 +216,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             if (type === 'course') await deleteCourse(id);
             await fetchData();
         } catch (error) {
-            alert("ডিলিট করা যায়নি।");
+            alert("ডিলিট করা যায়নি। পারমিশন নেই।");
         }
     };
 
