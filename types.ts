@@ -5,6 +5,14 @@ export interface User {
     email: string | null;
     photoURL: string | null;
     isAdmin?: boolean;
+    // Extended Profile
+    phone?: string;
+    bio?: string;
+    institution?: string;
+    address?: string;
+    linkedin?: string;
+    portfolio?: string;
+    skills?: string;
 }
 
 export interface Job {

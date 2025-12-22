@@ -46,6 +46,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
         try {
             await signInWithGoogle();
             setIsLoginModalOpen(false);
+            navigate('/dashboard'); // Send to dashboard after login
         } catch (e: any) { 
             console.error(e);
             setError(e.message || "Google Login Failed. Check console."); 
@@ -62,6 +63,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                 await registerWithEmail(name, email, password);
             }
             setIsLoginModalOpen(false);
+            navigate('/dashboard'); // Send to dashboard after login
         } catch (e: any) {
             console.error(e);
             setError(e.message || "Authentication failed");
@@ -98,10 +100,11 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                                             <LayoutDashboard size={14} /> Admin
                                         </Link>
                                     )}
-                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                    <Link to="/dashboard" className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:bg-slate-100 pl-1 pr-3 py-1 rounded-full transition-all">
                                         <img src={user.photoURL || 'https://via.placeholder.com/32'} alt="User" className="w-8 h-8 rounded-full border border-slate-300 object-cover" />
-                                    </div>
-                                    <button onClick={logout} className="p-2 rounded-full bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 transition-colors" title="Logout">
+                                        <span className="hidden sm:inline max-w-[100px] truncate">{user.displayName?.split(' ')[0]}</span>
+                                    </Link>
+                                    <button onClick={() => { logout(); navigate('/'); }} className="p-2 rounded-full bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 transition-colors" title="Logout">
                                         <LogOut size={18} />
                                     </button>
                                 </div>
@@ -123,6 +126,15 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                 {isMenuOpen && (
                     <div className="absolute top-full left-0 w-full px-4 mt-2 transition-all duration-300 origin-top animate-fade-in-down">
                         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 flex flex-col space-y-3 max-w-6xl mx-auto">
+                            {user && (
+                                <Link to="/dashboard" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl mb-2">
+                                    <img src={user.photoURL || 'https://via.placeholder.com/32'} alt="User" className="w-10 h-10 rounded-full border border-blue-200" />
+                                    <div>
+                                        <p className="font-bold text-slate-800">{user.displayName}</p>
+                                        <p className="text-xs text-slate-500">Dashboard & Profile</p>
+                                    </div>
+                                </Link>
+                            )}
                             <button onClick={() => scrollToSection('home')} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">হোম</button>
                             <Link to="/about" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">আমাদের সম্পর্কে</Link>
                             <Link to="/ecosystem" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">ইকোসিস্টেম</Link>

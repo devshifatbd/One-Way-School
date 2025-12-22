@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './services/firebase';
+import { auth, getUserProfile } from './services/firebase';
 import { User } from './types';
 
 // Components
@@ -16,6 +16,7 @@ import About from './pages/About';
 import Ecosystem from './pages/Ecosystem';
 import Blog from './pages/Blog';
 import Community from './pages/Community';
+import UserDashboard from './pages/UserDashboard';
 
 // Layout for Public Pages (Includes Navbar & Footer)
 const PublicLayout = ({ user }: { user: User | null }) => {
@@ -35,13 +36,16 @@ const App: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
+                // Fetch extended profile data
+                const profile = await getUserProfile(firebaseUser.uid);
                 setUser({
                     uid: firebaseUser.uid,
                     displayName: firebaseUser.displayName,
                     email: firebaseUser.email,
                     photoURL: firebaseUser.photoURL,
+                    ...profile // Merge extended profile fields
                 });
             } else {
                 setUser(null);
@@ -67,6 +71,7 @@ const App: React.FC = () => {
                     <Route path="/community" element={<Community user={user} />} />
                     <Route path="/jobs" element={<JobPortal user={user} />} />
                     <Route path="/blog" element={<Blog />} />
+                    <Route path="/dashboard" element={<UserDashboard user={user} />} />
                 </Route>
 
                 {/* Admin Route without Public Navbar/Footer */}

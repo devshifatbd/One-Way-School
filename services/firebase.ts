@@ -16,12 +16,14 @@ import {
     collection, 
     addDoc, 
     setDoc, 
+    getDoc,
     deleteDoc,
     doc, 
     serverTimestamp,
     getDocs,
     query,
-    orderBy
+    orderBy,
+    where
 } from 'firebase/firestore';
 
 // Configuration
@@ -43,15 +45,72 @@ const googleProvider = new GoogleAuthProvider();
 // Safe DB Save (Doesn't block auth if DB write fails)
 const saveUserToDB = async (user: FirebaseUser, name?: string) => {
     try {
-        await setDoc(doc(db, "users", user.uid), {
-            uid: user.uid,
-            name: name || user.displayName,
-            email: user.email,
-            photoURL: user.photoURL,
-            lastLogin: serverTimestamp()
-        }, { merge: true });
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        
+        // Only update basic auth info, don't overwrite detailed profile if it exists
+        if (!userSnap.exists()) {
+            await setDoc(userRef, {
+                uid: user.uid,
+                name: name || user.displayName,
+                email: user.email,
+                photoURL: user.photoURL,
+                createdAt: serverTimestamp(),
+                lastLogin: serverTimestamp()
+            });
+        } else {
+            await setDoc(userRef, {
+                lastLogin: serverTimestamp()
+            }, { merge: true });
+        }
     } catch (e) {
         console.warn("Failed to save user to DB, likely permission issue. Auth still successful.", e);
+    }
+};
+
+// --- USER PROFILE FUNCTIONS ---
+export const getUserProfile = async (uid: string) => {
+    try {
+        const docRef = doc(db, "users", uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return docSnap.data();
+        } else {
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching user profile", error);
+        return null;
+    }
+};
+
+export const updateUserProfile = async (uid: string, data: any) => {
+    try {
+        const userRef = doc(db, "users", uid);
+        await setDoc(userRef, data, { merge: true });
+        return true;
+    } catch (error) {
+        console.error("Error updating profile", error);
+        throw error;
+    }
+};
+
+export const getUserApplications = async (uid: string) => {
+    try {
+        // Fetch Leads (Job Applications)
+        const leadsQ = query(collection(db, 'leads'), where('userId', '==', uid), orderBy('createdAt', 'desc'));
+        const leadsSnap = await getDocs(leadsQ);
+        const leads = leadsSnap.docs.map(doc => ({ id: doc.id, type: 'job/lead', ...doc.data() }));
+
+        // Fetch Affiliate Applications
+        const affQ = query(collection(db, 'affiliates'), where('userId', '==', uid), orderBy('createdAt', 'desc'));
+        const affSnap = await getDocs(affQ);
+        const affiliates = affSnap.docs.map(doc => ({ id: doc.id, type: 'affiliate', ...doc.data() }));
+
+        return [...leads, ...affiliates];
+    } catch (error) {
+        console.warn("Error fetching user applications (requires index or permission)", error);
+        return [];
     }
 };
 
