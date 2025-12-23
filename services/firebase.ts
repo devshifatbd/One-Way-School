@@ -150,7 +150,6 @@ export const loginWithEmail = async (email: string, pass: string) => {
     }
 };
 
-// Auto-login for Admin Dashboard to bypass security rules
 export const loginAnonymously = async () => {
     try {
         const result = await signInAnonymously(auth);
@@ -222,6 +221,16 @@ export const getLeads = () => getData('leads');
 
 export const saveAffiliate = (data: any) => addData('affiliates', data);
 export const getAffiliates = () => getData('affiliates');
+export const updateAffiliateStatus = async (id: string, status: string, referralCode?: string) => {
+    try {
+        const data: any = { status };
+        if(referralCode) data.referralCode = referralCode;
+        await updateData('affiliates', id, data);
+    } catch(e) { throw e; }
+};
+
+export const saveWithdrawal = (data: any) => addData('withdrawals', data);
+export const getWithdrawals = () => getData('withdrawals');
 
 export const getUsers = async () => {
     try {

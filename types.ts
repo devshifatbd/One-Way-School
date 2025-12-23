@@ -34,8 +34,8 @@ export interface Job {
     postedDate?: any; 
     description?: string; 
     applyLink?: string;
-    userId?: string;     // Added for Security Rules
-    userEmail?: string;  // Added for Security Rules
+    userId?: string;     
+    userEmail?: string;  
 }
 
 export interface BlogPost {
@@ -46,8 +46,8 @@ export interface BlogPost {
     date?: any; 
     imageUrl: string;
     content?: string;
-    userId?: string;     // Added for Security Rules
-    userEmail?: string;  // Added for Security Rules
+    userId?: string;     
+    userEmail?: string;  
 }
 
 export interface Course {
@@ -58,8 +58,8 @@ export interface Course {
     duration: string;
     imageUrl: string;
     category: string;
-    userId?: string;     // Added for Security Rules
-    userEmail?: string;  // Added for Security Rules
+    userId?: string;     
+    userEmail?: string;  
 }
 
 export interface Lead {
@@ -81,11 +81,28 @@ export interface Affiliate {
     name: string;
     phone: string;
     email: string;
-    class_semester: string;
-    institution: string;
-    type: string;
+    class_semester?: string;
+    institution?: string;
+    type: 'Affiliate' | 'Campus Ambassador';
     imageUrl?: string;
     createdAt: any;
     userId?: string;
     source?: string;
+    // New Fields for System
+    status: 'pending' | 'approved' | 'rejected';
+    referralCode?: string;
+    balance: number;         // Current withdrawable balance
+    totalEarnings: number;   // Lifetime earnings
+    bkashNumber?: string;
+}
+
+export interface WithdrawalRequest {
+    id?: string;
+    userId: string;
+    userName: string;
+    amount: number;
+    method: 'Bkash' | 'Nagad' | 'Bank';
+    accountNumber: string;
+    status: 'pending' | 'completed' | 'rejected';
+    createdAt: any;
 }

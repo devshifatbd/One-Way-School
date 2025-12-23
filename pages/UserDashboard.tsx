@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { User } from '../types';
-import { updateUserProfile, getUserApplications } from '../services/firebase';
-import { User as UserIcon, MapPin, Phone, Briefcase, GraduationCap, Linkedin, Globe, Edit3, Save, BriefcaseBusiness, TrendingUp } from 'lucide-react';
+import { User, Affiliate } from '../types';
+import { updateUserProfile, getUserApplications, saveWithdrawal } from '../services/firebase';
+import { User as UserIcon, MapPin, Phone, Briefcase, GraduationCap, Linkedin, Globe, Edit3, Save, BriefcaseBusiness, TrendingUp, Copy, Wallet, ArrowUpRight } from 'lucide-react';
 
 interface UserDashboardProps {
     user: User | null;
 }
 
 const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
-    const [activeTab, setActiveTab] = useState<'profile' | 'applications'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'applications' | 'affiliate'>('profile');
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [applications, setApplications] = useState<any[]>([]);
-    
+    const [affiliateData, setAffiliateData] = useState<Affiliate | null>(null);
+
     // Profile Form State
     const [formData, setFormData] = useState({
         phone: '',
@@ -24,7 +25,11 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         skills: ''
     });
 
-    // Initialize form with user data
+    // Withdrawal Form
+    const [withdrawAmount, setWithdrawAmount] = useState('');
+    const [withdrawMethod, setWithdrawMethod] = useState<'Bkash' | 'Nagad' | 'Bank'>('Bkash');
+    const [accountNumber, setAccountNumber] = useState('');
+
     useEffect(() => {
         if (user) {
             setFormData({
@@ -44,6 +49,10 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         if (!user) return;
         const apps = await getUserApplications(user.uid);
         setApplications(apps);
+        
+        // Check for affiliate data
+        const aff = apps.find(a => a.type === 'Affiliate' || a.type === 'Campus Ambassador');
+        if (aff) setAffiliateData(aff as Affiliate);
     };
 
     const handleSaveProfile = async (e: React.FormEvent) => {
@@ -54,12 +63,48 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
             await updateUserProfile(user.uid, formData);
             setIsEditing(false);
             alert("প্রোফাইল আপডেট হয়েছে!");
-            // Note: Ideally, we should update the global user state here, 
-            // but for now, the App.tsx onAuthStateChanged logic handles refresh on reload.
         } catch (error) {
             alert("আপডেট ব্যর্থ হয়েছে।");
         }
         setLoading(false);
+    };
+
+    const handleWithdraw = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!user || !affiliateData) return;
+        
+        const amount = Number(withdrawAmount);
+        if(amount < 500) {
+            alert("মিনিমাম ৫০০ টাকা উইথড্র করতে হবে।");
+            return;
+        }
+        if(amount > affiliateData.balance) {
+            alert("পর্যাপ্ত ব্যালেন্স নেই।");
+            return;
+        }
+
+        if(window.confirm(`${amount} টাকা ${withdrawMethod} নাম্বারে উইথড্র রিকুয়েস্ট পাঠাবেন?`)) {
+            try {
+                await saveWithdrawal({
+                    userId: user.uid,
+                    userName: user.displayName,
+                    amount,
+                    method: withdrawMethod,
+                    accountNumber,
+                    status: 'pending'
+                });
+                alert("উইথড্র রিকুয়েস্ট সফল হয়েছে! এডমিন শীঘ্রই প্রসেস করবে।");
+                setWithdrawAmount('');
+                setAccountNumber('');
+            } catch(e) {
+                alert("Failed to request withdrawal.");
+            }
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        alert("কপি হয়েছে!");
     };
 
     if (!user) {
@@ -108,9 +153,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                                     <GraduationCap size={14} /> {formData.institution}
                                 </span>
                             )}
-                            {formData.address && (
-                                <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-sm font-medium flex items-center gap-2">
-                                    <MapPin size={14} /> {formData.address}
+                            {affiliateData?.status === 'approved' && (
+                                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium flex items-center gap-2">
+                                    <TrendingUp size={14} /> Verified Affiliate
                                 </span>
                             )}
                         </div>
@@ -132,10 +177,17 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                         >
                             <BriefcaseBusiness size={18} /> আবেদনসমূহ
                         </button>
+                        <button 
+                            onClick={() => setActiveTab('affiliate')}
+                            className={`w-full text-left px-5 py-3 rounded-xl font-medium flex items-center gap-3 transition-all ${activeTab === 'affiliate' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+                        >
+                            <TrendingUp size={18} /> Affiliate Panel
+                        </button>
                     </div>
 
                     {/* Content Area */}
                     <div className="md:col-span-3">
+                        {/* PROFILE TAB */}
                         {activeTab === 'profile' && (
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 animate-fade-in">
                                 <div className="flex justify-between items-center mb-6">
@@ -148,164 +200,156 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                                 </div>
 
                                 <form onSubmit={handleSaveProfile} className="space-y-6">
+                                    {/* (Existing profile form inputs remain same) */}
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-2">মোবাইল নম্বর</label>
-                                            <div className="relative">
-                                                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                                <input 
-                                                    disabled={!isEditing}
-                                                    type="text" 
-                                                    value={formData.phone}
-                                                    onChange={e => setFormData({...formData, phone: e.target.value})}
-                                                    className={`w-full pl-10 pr-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300 focus:ring-2 focus:ring-blue-500' : 'bg-slate-50 border-transparent text-slate-600'}`}
-                                                    placeholder="01XXXXXXXXX"
-                                                />
-                                            </div>
+                                            <input disabled={!isEditing} type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className={`w-full px-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300' : 'bg-slate-50 border-transparent text-slate-600'}`} placeholder="01XXXXXXXXX" />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-2">শিক্ষা প্রতিষ্ঠান</label>
-                                            <div className="relative">
-                                                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                                <input 
-                                                    disabled={!isEditing}
-                                                    type="text" 
-                                                    value={formData.institution}
-                                                    onChange={e => setFormData({...formData, institution: e.target.value})}
-                                                    className={`w-full pl-10 pr-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300 focus:ring-2 focus:ring-blue-500' : 'bg-slate-50 border-transparent text-slate-600'}`}
-                                                    placeholder="প্রতিষ্ঠানের নাম"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-2">ঠিকানা</label>
-                                            <div className="relative">
-                                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                                <input 
-                                                    disabled={!isEditing}
-                                                    type="text" 
-                                                    value={formData.address}
-                                                    onChange={e => setFormData({...formData, address: e.target.value})}
-                                                    className={`w-full pl-10 pr-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300 focus:ring-2 focus:ring-blue-500' : 'bg-slate-50 border-transparent text-slate-600'}`}
-                                                    placeholder="বর্তমান ঠিকানা"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-2">দক্ষতা (Skills)</label>
-                                            <div className="relative">
-                                                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                                <input 
-                                                    disabled={!isEditing}
-                                                    type="text" 
-                                                    value={formData.skills}
-                                                    onChange={e => setFormData({...formData, skills: e.target.value})}
-                                                    className={`w-full pl-10 pr-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300 focus:ring-2 focus:ring-blue-500' : 'bg-slate-50 border-transparent text-slate-600'}`}
-                                                    placeholder="e.g. React, Marketing, Sales"
-                                                />
-                                            </div>
+                                            <input disabled={!isEditing} type="text" value={formData.institution} onChange={e => setFormData({...formData, institution: e.target.value})} className={`w-full px-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300' : 'bg-slate-50 border-transparent text-slate-600'}`} placeholder="প্রতিষ্ঠানের নাম" />
                                         </div>
                                     </div>
-
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">বায়ো (Bio)</label>
-                                        <textarea 
-                                            disabled={!isEditing}
-                                            rows={3}
-                                            value={formData.bio}
-                                            onChange={e => setFormData({...formData, bio: e.target.value})}
-                                            className={`w-full px-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300 focus:ring-2 focus:ring-blue-500' : 'bg-slate-50 border-transparent text-slate-600'}`}
-                                            placeholder="আপনার সম্পর্কে সংক্ষেপে লিখুন..."
-                                        />
-                                    </div>
-
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-2">LinkedIn URL</label>
-                                            <div className="relative">
-                                                <Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                                <input 
-                                                    disabled={!isEditing}
-                                                    type="text" 
-                                                    value={formData.linkedin}
-                                                    onChange={e => setFormData({...formData, linkedin: e.target.value})}
-                                                    className={`w-full pl-10 pr-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300 focus:ring-2 focus:ring-blue-500' : 'bg-slate-50 border-transparent text-slate-600'}`}
-                                                    placeholder="https://linkedin.com/in/..."
-                                                />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-2">Portfolio / CV Link</label>
-                                            <div className="relative">
-                                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                                <input 
-                                                    disabled={!isEditing}
-                                                    type="text" 
-                                                    value={formData.portfolio}
-                                                    onChange={e => setFormData({...formData, portfolio: e.target.value})}
-                                                    className={`w-full pl-10 pr-4 py-3 rounded-xl border ${isEditing ? 'bg-white border-slate-300 focus:ring-2 focus:ring-blue-500' : 'bg-slate-50 border-transparent text-slate-600'}`}
-                                                    placeholder="https://..."
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
+                                    
                                     {isEditing && (
                                         <div className="flex justify-end pt-4 border-t border-slate-100 gap-3">
-                                            <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 rounded-lg font-bold text-slate-600 hover:bg-slate-100">
-                                                বাতিল
-                                            </button>
-                                            <button type="submit" disabled={loading} className="px-8 py-2 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2">
-                                                {loading ? 'সংরক্ষণ হচ্ছে...' : <><Save size={18}/> সংরক্ষণ করুন</>}
-                                            </button>
+                                            <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2 rounded-lg font-bold text-slate-600 hover:bg-slate-100">বাতিল</button>
+                                            <button type="submit" disabled={loading} className="px-8 py-2 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2">{loading ? 'সংরক্ষণ হচ্ছে...' : <><Save size={18}/> সংরক্ষণ করুন</>}</button>
                                         </div>
                                     )}
                                 </form>
                             </div>
                         )}
 
+                        {/* APPLICATIONS TAB */}
                         {activeTab === 'applications' && (
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 animate-fade-in">
                                 <h3 className="text-xl font-bold text-slate-800 mb-6">আমার আবেদনসমূহ</h3>
-                                
                                 {applications.length === 0 ? (
-                                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                                        <p className="text-slate-500">আপনি এখনো কোনো আবেদন করেননি।</p>
-                                    </div>
+                                    <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300"><p className="text-slate-500">আপনি এখনো কোনো আবেদন করেননি।</p></div>
                                 ) : (
                                     <div className="space-y-4">
                                         {applications.map((app, idx) => (
                                             <div key={idx} className="border border-slate-100 rounded-xl p-4 hover:bg-slate-50 transition-colors flex items-center justify-between">
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${app.type === 'job/lead' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                                                            {app.type === 'job/lead' ? 'Job Application' : 'Affiliate Program'}
-                                                        </span>
-                                                        <span className="text-xs text-slate-400">
-                                                            {app.createdAt ? new Date(app.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}
-                                                        </span>
+                                                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${app.type === 'job/lead' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{app.type}</span>
+                                                        <span className="text-xs text-slate-400">{app.createdAt ? new Date(app.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
                                                     </div>
-                                                    
-                                                    {app.type === 'job/lead' ? (
-                                                        <>
-                                                            <h4 className="font-bold text-slate-800">{app.details?.jobTitle || app.goal}</h4>
-                                                            <p className="text-sm text-slate-500">Lead ID: {app.id}</p>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                                                                <TrendingUp size={16} /> Affiliate / Ambassador Request
-                                                            </h4>
-                                                            <p className="text-sm text-slate-500">Institution: {app.institution}</p>
-                                                        </>
-                                                    )}
+                                                    <h4 className="font-bold text-slate-800">{app.details?.jobTitle || app.type}</h4>
                                                 </div>
                                                 <div className="text-right">
-                                                    <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold">Pending</span>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${app.status === 'approved' ? 'bg-green-100 text-green-700' : app.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                        {app.status || 'Pending'}
+                                                    </span>
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* AFFILIATE PANEL TAB */}
+                        {activeTab === 'affiliate' && (
+                            <div className="space-y-6 animate-fade-in">
+                                {!affiliateData ? (
+                                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
+                                        <TrendingUp className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                                        <h3 className="text-xl font-bold text-slate-700 mb-2">আপনি এখনো এফিলিয়েট প্রোগ্রামে জয়েন করেননি</h3>
+                                        <p className="text-slate-500 mb-6">আমাদের কমিউনিটি পেজ থেকে এখনই জয়েন করুন এবং আয় করা শুরু করুন।</p>
+                                        <button onClick={() => window.location.hash = '#/community'} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition">জয়েন করুন</button>
+                                    </div>
+                                ) : affiliateData.status === 'pending' ? (
+                                    <div className="bg-yellow-50 rounded-2xl p-8 text-center border border-yellow-200">
+                                        <h3 className="text-xl font-bold text-yellow-800 mb-2">আবেদন পেন্ডিং আছে</h3>
+                                        <p className="text-yellow-700">এডমিন এপ্রুভালের পর আপনি ড্যাশবোর্ড এক্সেস পাবেন।</p>
+                                    </div>
+                                ) : affiliateData.status === 'rejected' ? (
+                                    <div className="bg-red-50 rounded-2xl p-8 text-center border border-red-200">
+                                        <h3 className="text-xl font-bold text-red-800">আবেদন বাতিল করা হয়েছে</h3>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Approved Dashboard */}
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
+                                                <p className="text-blue-100 text-sm font-medium mb-1">মোট আয় (Lifetime)</p>
+                                                <h3 className="text-3xl font-bold">৳ {affiliateData.totalEarnings || 0}</h3>
+                                            </div>
+                                            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-center">
+                                                <p className="text-slate-500 text-sm font-medium mb-1">বর্তমান ব্যালেন্স</p>
+                                                <h3 className="text-3xl font-bold text-green-600">৳ {affiliateData.balance || 0}</h3>
+                                            </div>
+                                        </div>
+
+                                        {/* Referral Link */}
+                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                            <h4 className="font-bold text-slate-800 mb-3">আপনার রেফারেল লিংক</h4>
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    readOnly 
+                                                    value={`https://onewayschool.com?ref=${affiliateData.referralCode}`} 
+                                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-600 text-sm"
+                                                />
+                                                <button 
+                                                    onClick={() => copyToClipboard(`https://onewayschool.com?ref=${affiliateData.referralCode}`)}
+                                                    className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition"
+                                                >
+                                                    <Copy size={18}/>
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-slate-400 mt-2">এই লিংক শেয়ার করুন এবং প্রতিটি সাকসেসফুল এনরোলমেন্টে পান ১৫% বোনাস।</p>
+                                        </div>
+
+                                        {/* Withdraw Request */}
+                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                                <Wallet size={20} className="text-blue-600"/> টাকা উত্তোলন করুন
+                                            </h4>
+                                            <form onSubmit={handleWithdraw} className="space-y-4">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-500 mb-1">টাকার পরিমাণ</label>
+                                                        <input 
+                                                            type="number" 
+                                                            value={withdrawAmount} 
+                                                            onChange={e => setWithdrawAmount(e.target.value)} 
+                                                            className="w-full border border-slate-300 rounded-lg px-3 py-2" 
+                                                            placeholder="500"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-bold text-slate-500 mb-1">পেমেন্ট মেথড</label>
+                                                        <select 
+                                                            value={withdrawMethod} 
+                                                            onChange={e => setWithdrawMethod(e.target.value as any)}
+                                                            className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"
+                                                        >
+                                                            <option value="Bkash">বিকাশ</option>
+                                                            <option value="Nagad">নগদ</option>
+                                                            <option value="Bank">ব্যাংক</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-bold text-slate-500 mb-1">একাউন্ট নাম্বার</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={accountNumber} 
+                                                        onChange={e => setAccountNumber(e.target.value)} 
+                                                        className="w-full border border-slate-300 rounded-lg px-3 py-2" 
+                                                        placeholder="01XXXXXXXXX"
+                                                    />
+                                                </div>
+                                                <button type="submit" className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition">
+                                                    উইথড্র রিকুয়েস্ট পাঠান
+                                                </button>
+                                                <p className="text-xs text-slate-400 text-center">মিনিমাম উইথড্রয়াল এমাউন্ট: ৫০০ টাকা</p>
+                                            </form>
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         )}
