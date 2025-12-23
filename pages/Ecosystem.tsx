@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle, Briefcase, Users, MessageCircle, Heart, Star, CreditCard, X, ChevronDown, Lock, LogIn, Quote, TrendingUp, Target, FileText, MonitorPlay } from 'lucide-react';
-import { saveEcosystemApplication, auth, signInWithGoogle } from '../services/firebase';
+import { ArrowRight, CheckCircle, Briefcase, Users, MessageCircle, Heart, Star, CreditCard, X, ChevronDown, Lock, LogIn, Quote, TrendingUp, Target, FileText, MonitorPlay, Chrome } from 'lucide-react';
+import { saveEcosystemApplication, signInWithGoogle } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
+import { User } from '../types';
 
-const Ecosystem: React.FC = () => {
+interface EcosystemProps {
+    user: User | null;
+}
+
+const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [formData, setFormData] = useState({
@@ -15,13 +20,15 @@ const Ecosystem: React.FC = () => {
         paymentMethod: 'Bkash'
     });
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
     const [activeModule, setActiveModule] = useState<number | null>(0);
-    const user = auth.currentUser;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setErrorMsg('');
+        
         if(!user) {
-            alert("আবেদন করার জন্য প্রথমে লগইন করুন।");
+            setErrorMsg("আবেদন করার জন্য প্রথমে লগইন করুন।");
             return;
         }
 
@@ -35,8 +42,15 @@ const Ecosystem: React.FC = () => {
             alert("অভিনন্দন! আপনার ভর্তি সফলভাবে প্রক্রিয়াধীন। আমরা যাচাই করে কনফার্মেশন মেইল পাঠাবো।");
             setIsModalOpen(false);
             setFormData({ name: '', phone: '', email: '', institution: '', transactionId: '', paymentMethod: 'Bkash' });
-        } catch (error) {
-            alert("দুঃখিত, কিছু ভুল হয়েছে। আবার চেষ্টা করুন।");
+            
+            // Redirect to dashboard after short delay
+            setTimeout(() => {
+                navigate('/dashboard');
+            }, 1000);
+
+        } catch (error: any) {
+            console.error("Application Failed:", error);
+            setErrorMsg("সাবমিট ব্যর্থ হয়েছে: " + error.message);
         }
         setLoading(false);
     };
@@ -44,7 +58,6 @@ const Ecosystem: React.FC = () => {
     const handleGoogleLogin = async () => {
         try {
             await signInWithGoogle();
-            window.location.reload(); 
         } catch (error) {
             console.error(error);
         }
@@ -141,7 +154,7 @@ const Ecosystem: React.FC = () => {
                 </div>
             </section>
 
-             {/* 4 Pillars Section (Imported from Home) */}
+             {/* 4 Pillars Section */}
             <section className="py-16 md:py-24 bg-slate-900 text-white relative overflow-hidden">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-6xl opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500 via-transparent to-transparent"></div>
 
@@ -192,7 +205,7 @@ const Ecosystem: React.FC = () => {
                 </div>
             </section>
 
-             {/* Roadmap Section (Imported from Home) */}
+             {/* Roadmap Section */}
              <section className="py-16 md:py-24 bg-slate-50 relative">
                 <div className="container mx-auto px-4 md:px-6">
                     <div className="text-center mb-12">
@@ -228,7 +241,7 @@ const Ecosystem: React.FC = () => {
                 </div>
             </section>
 
-             {/* Benefits Section (Imported from Home) */}
+             {/* Benefits Section */}
             <section className="py-16 md:py-24 bg-white">
                 <div className="container mx-auto px-4 md:px-6">
                     <div className="text-center mb-12">
@@ -432,58 +445,82 @@ const Ecosystem: React.FC = () => {
                         </div>
                         
                         <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar">
-                            <div className="bg-blue-50 border border-blue-200 p-5 rounded-xl mb-6">
-                                <p className="text-slate-700 text-sm mb-3 font-medium text-center">নিচের নাম্বারে <strong>৩,৫০০ টাকা (Send Money)</strong> করে ফর্মটি পূরণ করুন।</p>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100">
-                                        <span className="font-bold text-pink-600 flex items-center gap-2">Bkash (Send Money)</span>
-                                        <span className="font-mono text-slate-700 font-bold text-lg select-all">01954666016</span>
+                            {!user ? (
+                                <div className="text-center py-8">
+                                    <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <Lock size={32}/>
                                     </div>
-                                    <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100">
-                                        <span className="font-bold text-orange-600 flex items-center gap-2">Nagad (Send Money)</span>
-                                        <span className="font-mono text-slate-700 font-bold text-lg select-all">01954666016</span>
-                                    </div>
+                                    <h3 className="text-xl font-bold text-slate-800 mb-2">লগইন প্রয়োজন</h3>
+                                    <p className="text-slate-500 mb-6 px-4">ভর্তি সম্পন্ন করতে এবং ড্যাশবোর্ড এক্সেস পেতে অনুগ্রহ করে প্রথমে লগইন করুন।</p>
+                                    <button 
+                                        onClick={handleGoogleLogin} 
+                                        className="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2"
+                                    >
+                                        <Chrome size={18} className="text-blue-600"/> গুগল দিয়ে লগইন
+                                    </button>
                                 </div>
-                            </div>
+                            ) : (
+                                <>
+                                    <div className="bg-blue-50 border border-blue-200 p-5 rounded-xl mb-6">
+                                        <p className="text-slate-700 text-sm mb-3 font-medium text-center">নিচের নাম্বারে <strong>৩,৫০০ টাকা (Send Money)</strong> করে ফর্মটি পূরণ করুন।</p>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100">
+                                                <span className="font-bold text-pink-600 flex items-center gap-2">Bkash (Send Money)</span>
+                                                <span className="font-mono text-slate-700 font-bold text-lg select-all">01954666016</span>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-blue-100">
+                                                <span className="font-bold text-orange-600 flex items-center gap-2">Nagad (Send Money)</span>
+                                                <span className="font-mono text-slate-700 font-bold text-lg select-all">01954666016</span>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">আপনার নাম</label>
-                                    <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 bg-white" placeholder="পূর্ণ নাম লিখুন" />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">মোবাইল</label>
-                                        <input required type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 bg-white" placeholder="01XXX..." />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">ইমেইল</label>
-                                        <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 bg-white" placeholder="example@mail.com" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1">শিক্ষা প্রতিষ্ঠান</label>
-                                    <input type="text" value={formData.institution} onChange={e => setFormData({...formData, institution: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 bg-white" placeholder="বিশ্ববিদ্যালয় / কলেজের নাম" />
-                                </div>
-                                
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">মেথড</label>
-                                        <select value={formData.paymentMethod} onChange={e => setFormData({...formData, paymentMethod: e.target.value as any})} className="w-full px-2 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900">
-                                            <option value="Bkash">Bkash</option>
-                                            <option value="Nagad">Nagad</option>
-                                        </select>
-                                    </div>
-                                    <div className="col-span-2">
-                                        <label className="block text-sm font-bold text-slate-700 mb-1">Transaction ID</label>
-                                        <input required type="text" value={formData.transactionId} onChange={e => setFormData({...formData, transactionId: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono uppercase placeholder-slate-400 text-slate-900 bg-white" placeholder="TrxID..." />
-                                    </div>
-                                </div>
+                                    <form onSubmit={handleSubmit} className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">আপনার নাম</label>
+                                            <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 bg-white" placeholder="পূর্ণ নাম লিখুন" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">মোবাইল</label>
+                                                <input required type="text" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 bg-white" placeholder="01XXX..." />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">ইমেইল</label>
+                                                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 bg-white" placeholder="example@mail.com" />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">শিক্ষা প্রতিষ্ঠান</label>
+                                            <input type="text" value={formData.institution} onChange={e => setFormData({...formData, institution: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-slate-900 bg-white" placeholder="বিশ্ববিদ্যালয় / কলেজের নাম" />
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="col-span-1">
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">মেথড</label>
+                                                <select value={formData.paymentMethod} onChange={e => setFormData({...formData, paymentMethod: e.target.value as any})} className="w-full px-2 py-3 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 outline-none text-slate-900">
+                                                    <option value="Bkash">Bkash</option>
+                                                    <option value="Nagad">Nagad</option>
+                                                </select>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <label className="block text-sm font-bold text-slate-700 mb-1">Transaction ID</label>
+                                                <input required type="text" value={formData.transactionId} onChange={e => setFormData({...formData, transactionId: e.target.value})} className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono uppercase placeholder-slate-400 text-slate-900 bg-white" placeholder="TrxID..." />
+                                            </div>
+                                        </div>
 
-                                <button disabled={loading} type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg mt-4 flex items-center justify-center gap-2">
-                                    {loading ? 'যাচাই করা হচ্ছে...' : 'পেমেন্ট কনফার্ম করুন'}
-                                </button>
-                            </form>
+                                        {errorMsg && (
+                                            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-200">
+                                                {errorMsg}
+                                            </div>
+                                        )}
+
+                                        <button disabled={loading} type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition shadow-lg mt-4 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+                                            {loading ? 'যাচাই করা হচ্ছে...' : 'পেমেন্ট কনফার্ম করুন'}
+                                        </button>
+                                    </form>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

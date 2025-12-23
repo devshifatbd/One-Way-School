@@ -1,18 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { User, Affiliate } from '../types';
-import { updateUserProfile, getUserApplications, saveWithdrawal } from '../services/firebase';
-import { User as UserIcon, Edit3, Save, Briefcase, TrendingUp, Copy, Wallet, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Affiliate, EcosystemApplication } from '../types';
+import { updateUserProfile, getUserApplications, saveWithdrawal, uploadProfileImage } from '../services/firebase';
+import { User as UserIcon, Edit3, Save, Briefcase, TrendingUp, Copy, Wallet, GraduationCap, Video, Bell, CheckCircle, BookOpen, Clock, RefreshCw, ChevronRight, Camera } from 'lucide-react';
 
 interface UserDashboardProps {
     user: User | null;
 }
 
 const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
-    const [activeTab, setActiveTab] = useState<'profile' | 'applications' | 'affiliate'>('profile');
+    const [activeTab, setActiveTab] = useState<'profile' | 'applications' | 'affiliate' | 'classroom'>('profile');
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [imageUploading, setImageUploading] = useState(false);
+    
     const [applications, setApplications] = useState<any[]>([]);
     const [affiliateData, setAffiliateData] = useState<Affiliate | null>(null);
+    const [ecosystemData, setEcosystemData] = useState<EcosystemApplication | null>(null);
+    
+    // File Input Ref
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Profile Form State
     const [formData, setFormData] = useState({
@@ -47,12 +54,30 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
 
     const fetchApplications = async () => {
         if (!user) return;
-        const apps = await getUserApplications(user.uid);
-        setApplications(apps);
-        
-        // Check for affiliate data
-        const aff = apps.find(a => a.type === 'Affiliate' || a.type === 'Campus Ambassador');
-        if (aff) setAffiliateData(aff as Affiliate);
+        setRefreshing(true);
+        try {
+            const apps = await getUserApplications(user.uid);
+            setApplications(apps);
+            
+            // Check for affiliate data
+            const aff = apps.find(a => a.type === 'Affiliate' || a.type === 'Campus Ambassador');
+            if (aff) setAffiliateData(aff as Affiliate);
+
+            // Check for Ecosystem Student data (Normalize status check)
+            const eco = apps.find(a => a.type === 'Ecosystem Program' && a.status?.toLowerCase() === 'approved');
+            
+            if (eco) {
+                setEcosystemData(eco as EcosystemApplication);
+                // If they are an approved ecosystem student, strictly default to classroom if not on profile
+                // But we let the user stay on 'profile' if they are already there.
+                // We will hide other tabs in the render logic.
+            } else {
+                setEcosystemData(null);
+            }
+        } catch (error) {
+            console.error("Failed to fetch applications", error);
+        }
+        setRefreshing(false);
     };
 
     const handleSaveProfile = async (e: React.FormEvent) => {
@@ -67,6 +92,24 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
             alert("আপডেট ব্যর্থ হয়েছে।");
         }
         setLoading(false);
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!user || !e.target.files || e.target.files.length === 0) return;
+        
+        const file = e.target.files[0];
+        setImageUploading(true);
+        try {
+            await uploadProfileImage(file, user.uid);
+            // Reload page or trigger a re-fetch of user profile in parent to see changes immediately
+            // For now, we rely on Firebase Auth state updates or manual refresh
+            alert("প্রোফাইল ছবি পরিবর্তন হয়েছে! (রিফ্রেশ করুন)");
+            window.location.reload(); 
+        } catch (error) {
+            console.error(error);
+            alert("ছবি আপলোড ব্যর্থ হয়েছে।");
+        }
+        setImageUploading(false);
     };
 
     const handleWithdraw = async (e: React.FormEvent) => {
@@ -107,6 +150,13 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         alert("কপি হয়েছে!");
     };
 
+    const MODULES = [
+        "মডিউল ১: সেলস মাস্টারি",
+        "মডিউল ২: বিজনেস কমিউনিকেশন",
+        "মডিউল ৩: প্রফেশনাল নেটওয়ার্কিং",
+        "মডিউল ৪: ইমোশনাল ইন্টেলিজেন্স"
+    ];
+
     if (!user) {
         return (
             <div className="pt-48 pb-20 container mx-auto text-center">
@@ -126,7 +176,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                     <h1 className="text-3xl md:text-5xl font-bold text-white mb-2">
                         স্বাগতম, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">{user.displayName}</span>
                     </h1>
-                    <p className="text-slate-400">আপনার ড্যাশবোর্ড থেকে প্রোফাইল এবং আবেদন ম্যানেজ করুন</p>
+                    <p className="text-slate-400">আপনার ড্যাশবোর্ড থেকে প্রোফাইল এবং কার্যক্রম ম্যানেজ করুন</p>
                 </div>
             </section>
 
@@ -136,24 +186,56 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                 <div className="bg-white rounded-3xl p-6 md:p-10 shadow-lg border border-slate-200 mb-8 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-blue-50 to-indigo-50 opacity-50"></div>
                     
-                    <div className="relative">
-                        <img src={user.photoURL || 'https://via.placeholder.com/150'} alt="Profile" className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg object-cover" />
-                        <button onClick={() => setActiveTab('profile')} className="absolute bottom-0 right-0 bg-slate-900 text-white p-2 rounded-full shadow-md hover:bg-slate-800 md:hidden">
-                            <Edit3 size={16} />
-                        </button>
+                    <div className="relative group">
+                        <img 
+                            src={user.photoURL || 'https://via.placeholder.com/150'} 
+                            alt="Profile" 
+                            className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg object-cover bg-white" 
+                        />
+                        {/* Image Upload Trigger */}
+                        <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="absolute bottom-0 right-0 md:right-2 bg-slate-900 text-white p-2 rounded-full cursor-pointer hover:bg-blue-600 transition-colors shadow-md"
+                            title="ছবি পরিবর্তন করুন"
+                        >
+                            {imageUploading ? <RefreshCw size={16} className="animate-spin"/> : <Camera size={16} />}
+                        </div>
+                        <input 
+                            type="file" 
+                            ref={fileInputRef} 
+                            onChange={handleImageUpload} 
+                            accept="image/*" 
+                            className="hidden" 
+                        />
                     </div>
                     
                     <div className="text-center md:text-left flex-1 relative z-10 pt-2 md:pt-4">
-                        <h2 className="text-2xl md:text-3xl font-bold text-slate-900">{user.displayName}</h2>
-                        <p className="text-slate-500 mb-4">{user.email}</p>
+                        <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-4">
+                            <div>
+                                <h2 className="text-2xl md:text-3xl font-bold text-slate-900">{user.displayName}</h2>
+                                <p className="text-slate-500 mb-4">{user.email}</p>
+                            </div>
+                            <button 
+                                onClick={fetchApplications} 
+                                disabled={refreshing}
+                                className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                            >
+                                <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''}/> আপডেট দেখুন
+                            </button>
+                        </div>
                         
-                        <div className="flex flex-wrap justify-center md:justify-start gap-3">
+                        <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-2">
                             {formData.institution && (
                                 <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium flex items-center gap-2">
                                     <GraduationCap size={14} /> {formData.institution}
                                 </span>
                             )}
-                            {affiliateData?.status === 'approved' && (
+                            {ecosystemData && (
+                                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium flex items-center gap-2 border border-purple-200">
+                                    <BookOpen size={14} /> Ecosystem Student ({ecosystemData.batch || 'Pending'})
+                                </span>
+                            )}
+                            {!ecosystemData && affiliateData?.status === 'approved' && (
                                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium flex items-center gap-2">
                                     <TrendingUp size={14} /> Verified Affiliate
                                 </span>
@@ -161,6 +243,22 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                         </div>
                     </div>
                 </div>
+
+                {/* Banner for Ecosystem Students */}
+                {ecosystemData && activeTab !== 'classroom' && (
+                    <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-4 mb-8 text-white flex flex-col md:flex-row items-center justify-between shadow-md animate-fade-in">
+                        <div className="flex items-center gap-3 mb-3 md:mb-0">
+                            <div className="bg-white/20 p-2 rounded-full"><Video size={20} /></div>
+                            <div>
+                                <p className="font-bold text-lg">আপনার ক্লাসরুম প্রস্তুত!</p>
+                                <p className="text-sm text-purple-100">ক্লাস লিংক এবং রিসোর্স দেখতে ক্লাসরুম ট্যাবে যান।</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setActiveTab('classroom')} className="bg-white text-purple-700 px-6 py-2 rounded-lg font-bold text-sm hover:bg-purple-50 transition-colors shadow-sm">
+                            ক্লাসরুমে যান
+                        </button>
+                    </div>
+                )}
 
                 <div className="grid md:grid-cols-4 gap-8">
                     {/* Sidebar Tabs */}
@@ -171,18 +269,35 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                         >
                             <UserIcon size={18} /> আমার প্রোফাইল
                         </button>
-                        <button 
-                            onClick={() => setActiveTab('applications')}
-                            className={`w-full text-left px-5 py-3 rounded-xl font-medium flex items-center gap-3 transition-all ${activeTab === 'applications' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
-                        >
-                            <Briefcase size={18} /> আবেদনসমূহ
-                        </button>
-                        <button 
-                            onClick={() => setActiveTab('affiliate')}
-                            className={`w-full text-left px-5 py-3 rounded-xl font-medium flex items-center gap-3 transition-all ${activeTab === 'affiliate' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
-                        >
-                            <TrendingUp size={18} /> Affiliate Panel
-                        </button>
+
+                        {/* If Ecosystem Student, show Classroom and HIDE others */}
+                        {ecosystemData ? (
+                            <button 
+                                onClick={() => setActiveTab('classroom')}
+                                className={`w-full text-left px-5 py-3 rounded-xl font-medium flex items-center gap-3 transition-all relative overflow-hidden ${activeTab === 'classroom' ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' : 'bg-white text-slate-600 hover:bg-slate-100 border border-purple-100'}`}
+                            >
+                                <div className="relative z-10 flex items-center gap-3">
+                                    <Video size={18} /> ক্লাসরুম
+                                </div>
+                                {activeTab !== 'classroom' && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>}
+                            </button>
+                        ) : (
+                            // Show generic tabs ONLY if NOT an ecosystem student
+                            <>
+                                <button 
+                                    onClick={() => setActiveTab('applications')}
+                                    className={`w-full text-left px-5 py-3 rounded-xl font-medium flex items-center gap-3 transition-all ${activeTab === 'applications' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+                                >
+                                    <Briefcase size={18} /> আবেদনসমূহ
+                                </button>
+                                <button 
+                                    onClick={() => setActiveTab('affiliate')}
+                                    className={`w-full text-left px-5 py-3 rounded-xl font-medium flex items-center gap-3 transition-all ${activeTab === 'affiliate' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+                                >
+                                    <TrendingUp size={18} /> Affiliate Panel
+                                </button>
+                            </>
+                        )}
                     </div>
 
                     {/* Content Area */}
@@ -221,8 +336,111 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                             </div>
                         )}
 
-                        {/* APPLICATIONS TAB */}
-                        {activeTab === 'applications' && (
+                        {/* CLASSROOM TAB */}
+                        {activeTab === 'classroom' && ecosystemData && (
+                             <div className="space-y-6 animate-fade-in">
+                                {/* Welcome Card */}
+                                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                                    <div className="relative z-10">
+                                        <h3 className="text-2xl font-bold mb-1">Ecosystem Classroom</h3>
+                                        <p className="text-violet-200">Batch: <span className="font-mono font-bold text-white bg-white/20 px-2 py-0.5 rounded">{ecosystemData.batch || 'Batch assigned soon...'}</span></p>
+                                        
+                                        <div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
+                                                <p className="text-xs text-violet-200 uppercase font-bold mb-1 flex items-center gap-1"><Clock size={12}/> Next Live Class</p>
+                                                <p className="font-bold text-lg">{ecosystemData.classTime || "সময়সূচী শীঘ্রই জানানো হবে"}</p>
+                                            </div>
+                                            
+                                            {ecosystemData.classLink ? (
+                                                <a href={ecosystemData.classLink} target="_blank" rel="noopener noreferrer" className="bg-white text-violet-700 px-6 py-3 rounded-xl font-bold hover:bg-violet-50 transition-all flex items-center gap-2 shadow-lg animate-pulse">
+                                                    <Video size={20}/> Join Live Class (Google Meet)
+                                                </a>
+                                            ) : (
+                                                <button disabled className="bg-white/50 text-white px-6 py-3 rounded-xl font-bold cursor-not-allowed flex items-center gap-2">
+                                                    <Video size={20}/> ক্লাসের লিংক শীঘ্রই আসছে
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                                </div>
+
+                                <div className="grid md:grid-cols-3 gap-6">
+                                    {/* Notice Board */}
+                                    <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Bell size={18} className="text-orange-500"/> নোটিশ বোর্ড</h4>
+                                        <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                                            {ecosystemData.notices && ecosystemData.notices.length > 0 ? (
+                                                ecosystemData.notices.map((notice, idx) => (
+                                                    <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <h5 className="font-bold text-slate-800 text-sm">{notice.title}</h5>
+                                                            <span className="text-[10px] text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100">
+                                                                {notice.date ? new Date(notice.date.seconds * 1000).toLocaleDateString() : 'Today'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-slate-600 leading-relaxed">{notice.message}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-slate-400 text-sm italic text-center py-4">বর্তমানে কোনো নোটিশ নেই</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Syllabus Tracker */}
+                                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={18} className="text-green-500"/> সিলেবাস প্রগ্রেস</h4>
+                                        <div className="space-y-3 relative">
+                                            <div className="absolute left-2.5 top-2 bottom-4 w-0.5 bg-slate-100"></div>
+                                            {MODULES.map((mod, idx) => {
+                                                const currentMod = ecosystemData.currentModule || 1;
+                                                const isCompleted = idx + 1 < currentMod;
+                                                const isActive = idx + 1 === currentMod;
+                                                
+                                                return (
+                                                    <div key={idx} className="relative z-10 flex items-center gap-3">
+                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${isCompleted ? 'bg-green-500 border-green-500 text-white' : isActive ? 'bg-white border-blue-500' : 'bg-white border-slate-200'}`}>
+                                                            {isCompleted && <CheckCircle size={12} fill="white" />}
+                                                            {isActive && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                                                        </div>
+                                                        <span className={`text-sm ${isActive ? 'font-bold text-blue-600' : isCompleted ? 'text-slate-400 line-through' : 'text-slate-500'}`}>
+                                                            {mod}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Payment Info */}
+                                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                     <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Wallet size={18} className="text-slate-500"/> পেমেন্ট তথ্য</h4>
+                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                         <div className="bg-slate-50 p-4 rounded-xl">
+                                             <p className="text-xs text-slate-500 uppercase">ভর্তি ফি (Paid)</p>
+                                             <p className="font-bold text-slate-800">৳ ১,৫০০</p>
+                                         </div>
+                                         <div className="bg-slate-50 p-4 rounded-xl">
+                                             <p className="text-xs text-slate-500 uppercase">১ম মডিউল (Paid)</p>
+                                             <p className="font-bold text-slate-800">৳ ২,০০০</p>
+                                         </div>
+                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                             <p className="text-xs text-blue-600 uppercase font-bold">পরবর্তী পেমেন্ট</p>
+                                             <p className="font-bold text-blue-800">৳ ২,০০০</p>
+                                         </div>
+                                         <div className="bg-slate-50 p-4 rounded-xl">
+                                             <p className="text-xs text-slate-500 uppercase">তারিখ</p>
+                                             <p className="font-bold text-slate-800">পরবর্তী মাসের ৫ তারিখ</p>
+                                         </div>
+                                     </div>
+                                </div>
+                             </div>
+                        )}
+
+                        {/* APPLICATIONS TAB (Generic User Only) */}
+                        {activeTab === 'applications' && !ecosystemData && (
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 animate-fade-in">
                                 <h3 className="text-xl font-bold text-slate-800 mb-6">আমার আবেদনসমূহ</h3>
                                 {applications.length === 0 ? (
@@ -230,7 +448,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                                 ) : (
                                     <div className="space-y-4">
                                         {applications.map((app, idx) => (
-                                            <div key={idx} className="border border-slate-100 rounded-xl p-4 hover:bg-slate-50 transition-colors flex items-center justify-between">
+                                            <div key={idx} className="border border-slate-100 rounded-xl p-4 hover:bg-slate-50 transition-colors flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${app.type === 'job/lead' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>{app.type}</span>
@@ -250,8 +468,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                             </div>
                         )}
 
-                        {/* AFFILIATE PANEL TAB */}
-                        {activeTab === 'affiliate' && (
+                        {/* AFFILIATE PANEL TAB (Generic User Only) */}
+                        {activeTab === 'affiliate' && !ecosystemData && (
                             <div className="space-y-6 animate-fade-in">
                                 {!affiliateData ? (
                                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">

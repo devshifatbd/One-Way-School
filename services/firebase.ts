@@ -27,6 +27,7 @@ import {
     where,
     writeBatch
 } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // Configuration
 const firebaseConfig = {
@@ -42,6 +43,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 
 // Safe DB Save (Doesn't block auth if DB write fails)
@@ -97,26 +99,60 @@ export const updateUserProfile = async (uid: string, data: any) => {
     }
 };
 
+export const uploadProfileImage = async (file: File, uid: string) => {
+    try {
+        const storageRef = ref(storage, `profile_images/${uid}`);
+        await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(storageRef);
+        
+        // Update Auth Profile
+        if (auth.currentUser) {
+            await updateProfile(auth.currentUser, { photoURL: downloadURL });
+        }
+        
+        // Update Firestore User Doc
+        await updateUserProfile(uid, { photoURL: downloadURL });
+        
+        return downloadURL;
+    } catch (error) {
+        console.error("Error uploading image:", error);
+        throw error;
+    }
+};
+
+// Helper function to sort by createdAt descending (Client-side)
+const sortByDateDesc = (a: any, b: any) => {
+    const timeA = a.createdAt?.seconds || 0;
+    const timeB = b.createdAt?.seconds || 0;
+    return timeB - timeA;
+};
+
 export const getUserApplications = async (uid: string) => {
     try {
+        // NOTE: Removed 'orderBy' from queries to prevent "Missing Index" errors.
+        // Sorting is done in JavaScript instead.
+        
         // Fetch Leads (Job Applications)
-        const leadsQ = query(collection(db, 'leads'), where('userId', '==', uid), orderBy('createdAt', 'desc'));
+        const leadsQ = query(collection(db, 'leads'), where('userId', '==', uid));
         const leadsSnap = await getDocs(leadsQ);
         const leads = leadsSnap.docs.map(doc => ({ id: doc.id, type: 'job/lead', ...doc.data() }));
 
         // Fetch Affiliate Applications
-        const affQ = query(collection(db, 'affiliates'), where('userId', '==', uid), orderBy('createdAt', 'desc'));
+        const affQ = query(collection(db, 'affiliates'), where('userId', '==', uid));
         const affSnap = await getDocs(affQ);
         const affiliates = affSnap.docs.map(doc => ({ id: doc.id, type: 'affiliate', ...doc.data() }));
 
         // Fetch Ecosystem Applications
-        const ecoQ = query(collection(db, 'ecosystem_applications'), where('userId', '==', uid), orderBy('createdAt', 'desc'));
+        const ecoQ = query(collection(db, 'ecosystem_applications'), where('userId', '==', uid));
         const ecoSnap = await getDocs(ecoQ);
         const ecosystem = ecoSnap.docs.map(doc => ({ id: doc.id, type: 'Ecosystem Program', ...doc.data() }));
 
-        return [...leads, ...affiliates, ...ecosystem];
+        // Merge and Sort
+        const allApps = [...leads, ...affiliates, ...ecosystem];
+        return allApps.sort(sortByDateDesc);
+
     } catch (error) {
-        console.warn("Error fetching user applications (requires index or permission)", error);
+        console.error("Error fetching user applications:", error);
         return [];
     }
 };
@@ -203,12 +239,20 @@ export const updateData = async (collectionName: string, id: string, data: any) 
 
 export const getData = async (collectionName: string) => {
     try {
+        // Keep orderBy here as simple queries usually work without complex indexes
         const q = query(collection(db, collectionName), orderBy('createdAt', 'desc'));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (e) {
-        console.error(`Error fetching ${collectionName}`, e);
-        return [];
+        console.error(`Error fetching ${collectionName} (trying fallback)`, e);
+        // Fallback without sort if index is missing
+        try {
+            const snapshot = await getDocs(collection(db, collectionName));
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return data.sort(sortByDateDesc);
+        } catch(err) {
+            return [];
+        }
     }
 };
 
@@ -246,20 +290,54 @@ export const getJobInterests = () => getData('job_interests');
 export const saveEcosystemApplication = (data: any) => addData('ecosystem_applications', data);
 export const getEcosystemApplications = () => getData('ecosystem_applications');
 export const updateEcosystemAppStatus = (id: string, status: string) => updateData('ecosystem_applications', id, { status });
+export const updateEcosystemStudent = (id: string, data: any) => updateData('ecosystem_applications', id, data);
 
 // Community Database
 export const saveCommunityMember = (data: any) => addData('community_members', data);
 export const getCommunityMembers = () => getData('community_members');
+
 export const getCommunityMemberByPhone = async (phone: string) => {
+    let foundMember = null;
+    
+    // 1. Try 'community_members' collection first (Admin Added)
     try {
         const q = query(collection(db, 'community_members'), where('phone', '==', phone));
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
-            return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+            foundMember = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
         }
-        return null;
-    } catch(e) { return null; }
+    } catch(e) { 
+        console.warn("Community DB read failed (Permission/Network), trying fallback...", e);
+    }
+
+    if (foundMember) return foundMember;
+
+    // 2. Fallback: Try 'affiliates' collection (User Registered)
+    // Users usually have permission to read 'affiliates' (especially their own)
+    try {
+        const q2 = query(collection(db, 'affiliates'), where('phone', '==', phone), where('status', '==', 'approved'));
+        const snap2 = await getDocs(q2);
+        
+        if (!snap2.empty) {
+            const data = snap2.docs[0].data();
+            return {
+                id: snap2.docs[0].id,
+                name: data.name,
+                phone: data.phone,
+                email: data.email,
+                // Map affiliate types to community roles
+                role: data.type === 'Campus Ambassador' ? 'Campus Ambassador' : 'Community Member',
+                category: data.type === 'Campus Ambassador' ? 'Campus Ambassador' : 'Affiliate',
+                createdAt: data.createdAt
+            };
+        }
+    } catch (e) {
+        console.error("Fallback search failed", e);
+    }
+
+    return null;
 };
+
 export const deleteCommunityMember = (id: string) => deleteData('community_members', id);
 
 export const bulkSaveCommunityMembers = async (members: any[]) => {

@@ -69,7 +69,7 @@ const App: React.FC = () => {
                     <Route path="/" element={<Home user={user} />} />
                     
                     <Route path="/about" element={<About />} />
-                    <Route path="/ecosystem" element={<Ecosystem />} />
+                    <Route path="/ecosystem" element={<Ecosystem user={user} />} />
                     <Route path="/community" element={<Community user={user} />} />
                     <Route path="/jobs" element={<JobPortal user={user} />} />
                     <Route path="/blog" element={<Blog />} />

@@ -48,6 +48,13 @@ export interface JobInterest {
     clickedAt: any;
 }
 
+export interface EcosystemNotice {
+    id: string;
+    title: string;
+    message: string;
+    date: any;
+}
+
 export interface EcosystemApplication {
     id?: string;
     name: string;
@@ -59,6 +66,16 @@ export interface EcosystemApplication {
     status: 'pending' | 'approved' | 'rejected';
     createdAt: any;
     userId: string;
+    
+    // LMS / Classroom Features
+    batch?: string;
+    joinDate?: any;
+    currentModule?: number; // 1 to 4
+    classLink?: string;
+    classTime?: string;
+    notices?: EcosystemNotice[];
+    dueAmount?: number;
+    paidAmount?: number;
 }
 
 export interface CommunityMember {

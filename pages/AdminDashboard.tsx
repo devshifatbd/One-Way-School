@@ -3,7 +3,7 @@ import {
     getLeads, getAffiliates, getUsers, getJobs, saveJob, updateJob, deleteJob, 
     getBlogPosts, saveBlogPost, updateBlogPost, deleteBlogPost, 
     getCourses, saveCourse, updateCourse, deleteCourse, updateAffiliateStatus,
-    getJobInterests, getEcosystemApplications, updateEcosystemAppStatus,
+    getJobInterests, getEcosystemApplications, updateEcosystemAppStatus, updateEcosystemStudent,
     getCommunityMembers, saveCommunityMember, deleteCommunityMember, bulkSaveCommunityMembers,
     logout, auth, updateData
 } from '../services/firebase';
@@ -11,7 +11,7 @@ import { User, Lead, Affiliate, Job, BlogPost, Course, JobInterest, EcosystemApp
 import { useNavigate } from 'react-router-dom';
 import { 
     Users, LayoutDashboard, Share2, Briefcase, BookOpen, 
-    GraduationCap, Plus, Trash2, X, ChevronLeft, LogOut, Search, Globe, Edit, CheckCircle, XCircle, MousePointerClick, CreditCard, Database, Download, Upload, Filter
+    GraduationCap, Plus, Trash2, X, ChevronLeft, LogOut, Search, Globe, Edit, CheckCircle, XCircle, MousePointerClick, CreditCard, Database, Download, Upload, Filter, Settings
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -42,9 +42,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
 
     // Forms State
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [modalType, setModalType] = useState<'job' | 'blog' | 'course' | 'member' | null>(null);
+    const [modalType, setModalType] = useState<'job' | 'blog' | 'course' | 'member' | 'ecosystem_manage' | null>(null);
     const [formLoading, setFormLoading] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+
+    // Ecosystem Management State
+    const [manageStudent, setManageStudent] = useState<EcosystemApplication | null>(null);
+    const [ecoFormData, setEcoFormData] = useState({
+        batch: '',
+        classLink: '',
+        classTime: '',
+        currentModule: 1,
+        noticeTitle: '',
+        noticeMessage: ''
+    });
 
     // Community Member specific states
     const [categoryFilter, setCategoryFilter] = useState('All');
@@ -233,6 +244,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     
     const openNewMemberModal = () => { setEditingId(null); setNewMember({ name: '', phone: '', email: '', role: '', category: 'Volunteer' }); setModalType('member'); setIsModalOpen(true); };
     const openEditMemberModal = (m: CommunityMember) => { setEditingId(m.id || null); setNewMember({ ...m, category: m.category || 'Volunteer' }); setModalType('member'); setIsModalOpen(true); };
+    
+    const openManageEcosystemModal = (app: EcosystemApplication) => {
+        setManageStudent(app);
+        setEcoFormData({
+            batch: app.batch || '',
+            classLink: app.classLink || '',
+            classTime: app.classTime || '',
+            currentModule: app.currentModule || 1,
+            noticeTitle: '',
+            noticeMessage: ''
+        });
+        setModalType('ecosystem_manage');
+        setIsModalOpen(true);
+    };
 
 
     // Save Handlers
@@ -313,6 +338,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         }
         setFormLoading(false);
     };
+
+    const handleSaveEcosystemStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if(!manageStudent?.id) return;
+        setFormLoading(true);
+        try {
+            const updatePayload: any = {
+                batch: ecoFormData.batch,
+                classLink: ecoFormData.classLink,
+                classTime: ecoFormData.classTime,
+                currentModule: Number(ecoFormData.currentModule)
+            };
+
+            // Add notice if present
+            if(ecoFormData.noticeTitle && ecoFormData.noticeMessage) {
+                const newNotice = {
+                    title: ecoFormData.noticeTitle,
+                    message: ecoFormData.noticeMessage,
+                    date: new Date()
+                };
+                const existingNotices = manageStudent.notices || [];
+                updatePayload.notices = [newNotice, ...existingNotices];
+            }
+
+            await updateEcosystemStudent(manageStudent.id, updatePayload);
+            setIsModalOpen(false);
+            fetchData();
+            alert("Student Updated!");
+        } catch(e) {
+            alert("Update Failed");
+        }
+        setFormLoading(false);
+    }
 
     const handleDelete = async (type: 'job' | 'blog' | 'course' | 'member', id?: string) => {
         if (!id || !window.confirm("Are you sure?")) return;
@@ -569,17 +627,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                 <h3 className="p-6 border-b font-bold">Ecosystem Applications</h3>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm">
-                                        <thead className="bg-slate-50"><tr><th className="p-4">Name</th><th className="p-4">Phone</th><th className="p-4">TrxID</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead>
+                                        <thead className="bg-slate-50"><tr><th className="p-4">Name</th><th className="p-4">Batch</th><th className="p-4">Phone</th><th className="p-4">TrxID</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead>
                                         <tbody className="divide-y">
                                             {ecosystemApps.map(app => (
                                                 <tr key={app.id} className="hover:bg-slate-50">
                                                     <td className="p-4 font-bold">{app.name}</td>
+                                                    <td className="p-4 text-slate-500">{app.batch || '-'}</td>
                                                     <td className="p-4">{app.phone}</td>
                                                     <td className="p-4 font-mono">{app.transactionId}</td>
                                                     <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${app.status==='approved'?'bg-green-100 text-green-700':app.status==='rejected'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{app.status}</span></td>
                                                     <td className="p-4 flex gap-2">
-                                                        <button onClick={() => handleEcosystemStatus(app.id!, 'approved')} className="text-green-600 hover:bg-green-50 p-1 rounded"><CheckCircle size={18}/></button>
-                                                        <button onClick={() => handleEcosystemStatus(app.id!, 'rejected')} className="text-red-600 hover:bg-red-50 p-1 rounded"><XCircle size={18}/></button>
+                                                        {app.status === 'approved' ? (
+                                                            <button onClick={() => openManageEcosystemModal(app)} className="bg-slate-900 text-white px-3 py-1 rounded text-xs font-bold flex items-center gap-1 hover:bg-slate-700">
+                                                                <Settings size={14}/> Manage Class
+                                                            </button>
+                                                        ) : (
+                                                            <>
+                                                                <button onClick={() => handleEcosystemStatus(app.id!, 'approved')} className="text-green-600 hover:bg-green-50 p-1 rounded"><CheckCircle size={18}/></button>
+                                                                <button onClick={() => handleEcosystemStatus(app.id!, 'rejected')} className="text-red-600 hover:bg-red-50 p-1 rounded"><XCircle size={18}/></button>
+                                                            </>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -664,10 +731,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
                     <div className="bg-white rounded-2xl w-full max-w-4xl my-8 relative shadow-2xl flex flex-col max-h-[90vh]">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
-                            <h3 className="text-xl font-bold text-slate-800">{editingId ? 'Edit Content' : 'Add Content'}</h3>
+                            <h3 className="text-xl font-bold text-slate-800">{editingId ? 'Edit Content' : 'Manage Content'}</h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={24}/></button>
                         </div>
                         <div className="p-6 overflow-y-auto custom-scrollbar">
+                            
+                            {/* Ecosystem Manage Modal */}
+                            {modalType === 'ecosystem_manage' && manageStudent && (
+                                <form onSubmit={handleSaveEcosystemStudent} className="space-y-6">
+                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+                                        <p className="font-bold text-slate-800">{manageStudent.name}</p>
+                                        <p className="text-sm text-slate-600">{manageStudent.email}</p>
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Batch Name</label>
+                                            <input required value={ecoFormData.batch} onChange={e => setEcoFormData({...ecoFormData, batch: e.target.value})} className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg outline-none" placeholder="e.g. Batch 10"/>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Current Module (1-4)</label>
+                                            <input type="number" min="1" max="4" value={ecoFormData.currentModule} onChange={e => setEcoFormData({...ecoFormData, currentModule: Number(e.target.value)})} className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg outline-none"/>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Live Class Link (Google Meet)</label>
+                                            <input value={ecoFormData.classLink} onChange={e => setEcoFormData({...ecoFormData, classLink: e.target.value})} className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg outline-none" placeholder="https://meet.google.com/..."/>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Next Class Time</label>
+                                            <input value={ecoFormData.classTime} onChange={e => setEcoFormData({...ecoFormData, classTime: e.target.value})} className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg outline-none" placeholder="e.g. Friday at 9:00 PM"/>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="border-t border-slate-100 pt-4 mt-4">
+                                        <h4 className="font-bold text-slate-800 mb-2">Add New Notice</h4>
+                                        <div className="space-y-3">
+                                            <input value={ecoFormData.noticeTitle} onChange={e => setEcoFormData({...ecoFormData, noticeTitle: e.target.value})} className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg outline-none" placeholder="Notice Title"/>
+                                            <textarea rows={2} value={ecoFormData.noticeMessage} onChange={e => setEcoFormData({...ecoFormData, noticeMessage: e.target.value})} className="w-full px-4 py-2 bg-white border border-slate-300 rounded-lg outline-none" placeholder="Message content..."></textarea>
+                                        </div>
+                                    </div>
+
+                                    <button disabled={formLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-all">
+                                        {formLoading ? 'Updating...' : 'Update Student Info'}
+                                    </button>
+                                </form>
+                            )}
+
                             {modalType === 'member' && (
                                 <form onSubmit={handleSaveMember} className="space-y-4">
                                     <div className="grid md:grid-cols-2 gap-4">
