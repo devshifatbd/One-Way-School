@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Briefcase, Clock, Filter, CheckSquare, Square, ChevronDown, ChevronUp, ExternalLink, Lock, Eye, Building2, Banknote, Calendar, X } from 'lucide-react';
+import { Search, MapPin, Briefcase, Filter, CheckSquare, Square, ChevronDown, ExternalLink, Lock, Eye, Building2, Banknote, Calendar, X } from 'lucide-react';
 import { Job, User } from '../types';
 import { getJobs, saveJobInterest } from '../services/firebase';
 

@@ -5,13 +5,13 @@ import {
     getCourses, saveCourse, updateCourse, deleteCourse, updateAffiliateStatus,
     getJobInterests, getEcosystemApplications, updateEcosystemAppStatus,
     getCommunityMembers, saveCommunityMember, deleteCommunityMember, bulkSaveCommunityMembers,
-    loginWithEmail, logout, auth, updateData
+    logout, auth, updateData
 } from '../services/firebase';
 import { User, Lead, Affiliate, Job, BlogPost, Course, JobInterest, EcosystemApplication, CommunityMember } from '../types';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
-    Users, LayoutDashboard, Share2, Lock, Briefcase, BookOpen, 
-    GraduationCap, Plus, Trash2, X, ChevronRight, Menu, ChevronLeft, LogOut, Search, Globe, Chrome, Link as LinkIcon, Edit, CheckCircle, XCircle, MousePointerClick, CreditCard, Eye, Database, FileText, Download, Upload, Filter
+    Users, LayoutDashboard, Share2, Briefcase, BookOpen, 
+    GraduationCap, Plus, Trash2, X, ChevronLeft, LogOut, Search, Globe, Edit, CheckCircle, XCircle, MousePointerClick, CreditCard, Database, Download, Upload, Filter
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';

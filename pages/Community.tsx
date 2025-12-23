@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TrendingUp, Award, Users, CheckCircle, Clock, Lock, ArrowRight, Coins, Download, ShieldCheck } from 'lucide-react';
+import { Award, Users, Lock, ArrowRight, Coins, Download, ShieldCheck } from 'lucide-react';
 import { User, Affiliate } from '../types';
 import { saveAffiliate, getUserApplications, getCommunityMemberByPhone, signInWithGoogle } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';

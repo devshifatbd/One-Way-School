@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle, Briefcase, Users, MessageCircle, Heart, Star, Layout, CreditCard, X, ChevronDown, Check, Lock, LogIn, Quote, Gift, Award, TrendingUp, Target, UserCircle, FileText, MonitorPlay } from 'lucide-react';
+import { ArrowRight, CheckCircle, Briefcase, Users, MessageCircle, Heart, Star, CreditCard, X, ChevronDown, Lock, LogIn, Quote, TrendingUp, Target, FileText, MonitorPlay } from 'lucide-react';
 import { saveEcosystemApplication, auth, signInWithGoogle } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 

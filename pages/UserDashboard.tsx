@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Affiliate } from '../types';
 import { updateUserProfile, getUserApplications, saveWithdrawal } from '../services/firebase';
-import { User as UserIcon, MapPin, Phone, Briefcase, GraduationCap, Linkedin, Globe, Edit3, Save, BriefcaseBusiness, TrendingUp, Copy, Wallet, ArrowUpRight } from 'lucide-react';
+import { User as UserIcon, Edit3, Save, BriefcaseBusiness, TrendingUp, Copy, Wallet, GraduationCap } from 'lucide-react';
 
 interface UserDashboardProps {
     user: User | null;
@@ -200,7 +200,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                                 </div>
 
                                 <form onSubmit={handleSaveProfile} className="space-y-6">
-                                    {/* (Existing profile form inputs remain same) */}
                                     <div className="grid md:grid-cols-2 gap-6">
                                         <div>
                                             <label className="block text-sm font-bold text-slate-700 mb-2">মোবাইল নম্বর</label>
