@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Affiliate, EcosystemApplication } from '../types';
 import { updateUserProfile, getUserApplications, saveWithdrawal, uploadProfileImage } from '../services/firebase';
-import { User as UserIcon, Edit3, Save, Briefcase, TrendingUp, Copy, Wallet, GraduationCap, Video, Bell, CheckCircle, BookOpen, Clock, RefreshCw, ChevronRight, Camera } from 'lucide-react';
+import { User as UserIcon, Edit3, Save, Briefcase, TrendingUp, Copy, Wallet, GraduationCap, Video, Bell, CheckCircle, BookOpen, Clock, RefreshCw, ChevronRight, Camera, AlertCircle, HelpCircle } from 'lucide-react';
 
 interface UserDashboardProps {
     user: User | null;
@@ -63,14 +63,12 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
             const aff = apps.find(a => a.type === 'Affiliate' || a.type === 'Campus Ambassador');
             if (aff) setAffiliateData(aff as Affiliate);
 
-            // Check for Ecosystem Student data (Normalize status check)
-            const eco = apps.find(a => a.type === 'Ecosystem Program' && a.status?.toLowerCase() === 'approved');
+            // Check for Ecosystem Student data (ANY status: Pending, Approved, Rejected)
+            // We verify by type 'Ecosystem Program'
+            const eco = apps.find(a => a.type === 'Ecosystem Program');
             
             if (eco) {
                 setEcosystemData(eco as EcosystemApplication);
-                // If they are an approved ecosystem student, strictly default to classroom if not on profile
-                // But we let the user stay on 'profile' if they are already there.
-                // We will hide other tabs in the render logic.
             } else {
                 setEcosystemData(null);
             }
@@ -101,8 +99,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         setImageUploading(true);
         try {
             await uploadProfileImage(file, user.uid);
-            // Reload page or trigger a re-fetch of user profile in parent to see changes immediately
-            // For now, we rely on Firebase Auth state updates or manual refresh
             alert("প্রোফাইল ছবি পরিবর্তন হয়েছে! (রিফ্রেশ করুন)");
             window.location.reload(); 
         } catch (error) {
@@ -230,11 +226,19 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                                     <GraduationCap size={14} /> {formData.institution}
                                 </span>
                             )}
+                            
                             {ecosystemData && (
-                                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium flex items-center gap-2 border border-purple-200">
-                                    <BookOpen size={14} /> Ecosystem Student ({ecosystemData.batch || 'Pending'})
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 border ${
+                                    ecosystemData.status === 'approved' 
+                                        ? 'bg-purple-100 text-purple-700 border-purple-200' 
+                                        : ecosystemData.status === 'rejected'
+                                        ? 'bg-red-100 text-red-700 border-red-200'
+                                        : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                }`}>
+                                    <BookOpen size={14} /> Ecosystem: {ecosystemData.status === 'approved' ? (ecosystemData.batch || 'Batch TBD') : ecosystemData.status}
                                 </span>
                             )}
+
                             {!ecosystemData && affiliateData?.status === 'approved' && (
                                 <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium flex items-center gap-2">
                                     <TrendingUp size={14} /> Verified Affiliate
@@ -244,8 +248,8 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                     </div>
                 </div>
 
-                {/* Banner for Ecosystem Students */}
-                {ecosystemData && activeTab !== 'classroom' && (
+                {/* Banner for Ecosystem Students (Approved Only) */}
+                {ecosystemData && ecosystemData.status === 'approved' && activeTab !== 'classroom' && (
                     <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-4 mb-8 text-white flex flex-col md:flex-row items-center justify-between shadow-md animate-fade-in">
                         <div className="flex items-center gap-3 mb-3 md:mb-0">
                             <div className="bg-white/20 p-2 rounded-full"><Video size={20} /></div>
@@ -270,16 +274,17 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                             <UserIcon size={18} /> আমার প্রোফাইল
                         </button>
 
-                        {/* If Ecosystem Student, show Classroom and HIDE others */}
+                        {/* If Ecosystem Student (Any Status), show Classroom/Status Tab and HIDE others */}
                         {ecosystemData ? (
                             <button 
                                 onClick={() => setActiveTab('classroom')}
                                 className={`w-full text-left px-5 py-3 rounded-xl font-medium flex items-center gap-3 transition-all relative overflow-hidden ${activeTab === 'classroom' ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' : 'bg-white text-slate-600 hover:bg-slate-100 border border-purple-100'}`}
                             >
                                 <div className="relative z-10 flex items-center gap-3">
-                                    <Video size={18} /> ক্লাসরুম
+                                    {ecosystemData.status === 'approved' ? <Video size={18} /> : <Clock size={18}/>}
+                                    {ecosystemData.status === 'approved' ? 'ক্লাসরুম' : 'আবেদন স্ট্যাটাস'}
                                 </div>
-                                {activeTab !== 'classroom' && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>}
+                                {activeTab !== 'classroom' && ecosystemData.status === 'approved' && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>}
                             </button>
                         ) : (
                             // Show generic tabs ONLY if NOT an ecosystem student
@@ -336,106 +341,171 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                             </div>
                         )}
 
-                        {/* CLASSROOM TAB */}
+                        {/* CLASSROOM / STATUS TAB */}
                         {activeTab === 'classroom' && ecosystemData && (
                              <div className="space-y-6 animate-fade-in">
-                                {/* Welcome Card */}
-                                <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                                    <div className="relative z-10">
-                                        <h3 className="text-2xl font-bold mb-1">Ecosystem Classroom</h3>
-                                        <p className="text-violet-200">Batch: <span className="font-mono font-bold text-white bg-white/20 px-2 py-0.5 rounded">{ecosystemData.batch || 'Batch assigned soon...'}</span></p>
-                                        
-                                        <div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-center">
-                                            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
-                                                <p className="text-xs text-violet-200 uppercase font-bold mb-1 flex items-center gap-1"><Clock size={12}/> Next Live Class</p>
-                                                <p className="font-bold text-lg">{ecosystemData.classTime || "সময়সূচী শীঘ্রই জানানো হবে"}</p>
-                                            </div>
-                                            
-                                            {ecosystemData.classLink ? (
-                                                <a href={ecosystemData.classLink} target="_blank" rel="noopener noreferrer" className="bg-white text-violet-700 px-6 py-3 rounded-xl font-bold hover:bg-violet-50 transition-all flex items-center gap-2 shadow-lg animate-pulse">
-                                                    <Video size={20}/> Join Live Class (Google Meet)
-                                                </a>
-                                            ) : (
-                                                <button disabled className="bg-white/50 text-white px-6 py-3 rounded-xl font-bold cursor-not-allowed flex items-center gap-2">
-                                                    <Video size={20}/> ক্লাসের লিংক শীঘ্রই আসছে
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-                                </div>
-
-                                <div className="grid md:grid-cols-3 gap-6">
-                                    {/* Notice Board */}
-                                    <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Bell size={18} className="text-orange-500"/> নোটিশ বোর্ড</h4>
-                                        <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                                            {ecosystemData.notices && ecosystemData.notices.length > 0 ? (
-                                                ecosystemData.notices.map((notice, idx) => (
-                                                    <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <h5 className="font-bold text-slate-800 text-sm">{notice.title}</h5>
-                                                            <span className="text-[10px] text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100">
-                                                                {notice.date ? new Date(notice.date.seconds * 1000).toLocaleDateString() : 'Today'}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-sm text-slate-600 leading-relaxed">{notice.message}</p>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <p className="text-slate-400 text-sm italic text-center py-4">বর্তমানে কোনো নোটিশ নেই</p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Syllabus Tracker */}
-                                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={18} className="text-green-500"/> সিলেবাস প্রগ্রেস</h4>
-                                        <div className="space-y-3 relative">
-                                            <div className="absolute left-2.5 top-2 bottom-4 w-0.5 bg-slate-100"></div>
-                                            {MODULES.map((mod, idx) => {
-                                                const currentMod = ecosystemData.currentModule || 1;
-                                                const isCompleted = idx + 1 < currentMod;
-                                                const isActive = idx + 1 === currentMod;
+                                {/* If Approved, Show Classroom */}
+                                {ecosystemData.status === 'approved' ? (
+                                    <>
+                                        {/* Welcome Card */}
+                                        <div className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                                            <div className="relative z-10">
+                                                <h3 className="text-2xl font-bold mb-1">Ecosystem Classroom</h3>
+                                                <p className="text-violet-200">Batch: <span className="font-mono font-bold text-white bg-white/20 px-2 py-0.5 rounded">{ecosystemData.batch || 'Batch assigned soon...'}</span></p>
                                                 
-                                                return (
-                                                    <div key={idx} className="relative z-10 flex items-center gap-3">
-                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${isCompleted ? 'bg-green-500 border-green-500 text-white' : isActive ? 'bg-white border-blue-500' : 'bg-white border-slate-200'}`}>
-                                                            {isCompleted && <CheckCircle size={12} fill="white" />}
-                                                            {isActive && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
-                                                        </div>
-                                                        <span className={`text-sm ${isActive ? 'font-bold text-blue-600' : isCompleted ? 'text-slate-400 line-through' : 'text-slate-500'}`}>
-                                                            {mod}
-                                                        </span>
+                                                <div className="mt-6 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                                                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
+                                                        <p className="text-xs text-violet-200 uppercase font-bold mb-1 flex items-center gap-1"><Clock size={12}/> Next Live Class</p>
+                                                        <p className="font-bold text-lg">{ecosystemData.classTime || "সময়সূচী শীঘ্রই জানানো হবে"}</p>
                                                     </div>
-                                                );
-                                            })}
+                                                    
+                                                    {ecosystemData.classLink ? (
+                                                        <a href={ecosystemData.classLink} target="_blank" rel="noopener noreferrer" className="bg-white text-violet-700 px-6 py-3 rounded-xl font-bold hover:bg-violet-50 transition-all flex items-center gap-2 shadow-lg animate-pulse">
+                                                            <Video size={20}/> Join Live Class (Google Meet)
+                                                        </a>
+                                                    ) : (
+                                                        <button disabled className="bg-white/50 text-white px-6 py-3 rounded-xl font-bold cursor-not-allowed flex items-center gap-2">
+                                                            <Video size={20}/> ক্লাসের লিংক শীঘ্রই আসছে
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="absolute right-0 top-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
                                         </div>
+
+                                        <div className="grid md:grid-cols-3 gap-6">
+                                            {/* Notice Board */}
+                                            <div className="md:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                                <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Bell size={18} className="text-orange-500"/> নোটিশ বোর্ড</h4>
+                                                <div className="space-y-4 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+                                                    {ecosystemData.notices && ecosystemData.notices.length > 0 ? (
+                                                        ecosystemData.notices.map((notice, idx) => (
+                                                            <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                                                <div className="flex justify-between items-start mb-1">
+                                                                    <h5 className="font-bold text-slate-800 text-sm">{notice.title}</h5>
+                                                                    <span className="text-[10px] text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100">
+                                                                        {notice.date ? new Date(notice.date.seconds * 1000).toLocaleDateString() : 'Today'}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-sm text-slate-600 leading-relaxed">{notice.message}</p>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <p className="text-slate-400 text-sm italic text-center py-4">বর্তমানে কোনো নোটিশ নেই</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Syllabus Tracker */}
+                                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                                <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><CheckCircle size={18} className="text-green-500"/> সিলেবাস প্রগ্রেস</h4>
+                                                <div className="space-y-3 relative">
+                                                    <div className="absolute left-2.5 top-2 bottom-4 w-0.5 bg-slate-100"></div>
+                                                    {MODULES.map((mod, idx) => {
+                                                        const currentMod = ecosystemData.currentModule || 1;
+                                                        const isCompleted = idx + 1 < currentMod;
+                                                        const isActive = idx + 1 === currentMod;
+                                                        
+                                                        return (
+                                                            <div key={idx} className="relative z-10 flex items-center gap-3">
+                                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${isCompleted ? 'bg-green-500 border-green-500 text-white' : isActive ? 'bg-white border-blue-500' : 'bg-white border-slate-200'}`}>
+                                                                    {isCompleted && <CheckCircle size={12} fill="white" />}
+                                                                    {isActive && <div className="w-2 h-2 bg-blue-500 rounded-full"></div>}
+                                                                </div>
+                                                                <span className={`text-sm ${isActive ? 'font-bold text-blue-600' : isCompleted ? 'text-slate-400 line-through' : 'text-slate-500'}`}>
+                                                                    {mod}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Payment Info */}
+                                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                                            <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Wallet size={18} className="text-slate-500"/> পেমেন্ট তথ্য</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                                <div className="bg-slate-50 p-4 rounded-xl">
+                                                    <p className="text-xs text-slate-500 uppercase">ভর্তি ফি (Paid)</p>
+                                                    <p className="font-bold text-slate-800">৳ ১,৫০০</p>
+                                                </div>
+                                                <div className="bg-slate-50 p-4 rounded-xl">
+                                                    <p className="text-xs text-slate-500 uppercase">১ম মডিউল (Paid)</p>
+                                                    <p className="font-bold text-slate-800">৳ ২,০০০</p>
+                                                </div>
+                                                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                                    <p className="text-xs text-blue-600 uppercase font-bold">পরবর্তী পেমেন্ট</p>
+                                                    <p className="font-bold text-blue-800">৳ ২,০০০</p>
+                                                </div>
+                                                <div className="bg-slate-50 p-4 rounded-xl">
+                                                    <p className="text-xs text-slate-500 uppercase">তারিখ</p>
+                                                    <p className="font-bold text-slate-800">পরবর্তী মাসের ৫ তারিখ</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    // PENDING or REJECTED State UI
+                                    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 p-8 text-center mt-8">
+                                        {ecosystemData.status === 'rejected' ? (
+                                            <>
+                                                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                    <AlertCircle size={40} className="text-red-600"/>
+                                                </div>
+                                                <h2 className="text-2xl font-bold text-slate-800 mb-3">আপনার আবেদনটি বাতিল করা হয়েছে</h2>
+                                                <p className="text-slate-600 mb-6 leading-relaxed">
+                                                    দুঃখিত, আপনার প্রদত্ত তথ্যে অসামঞ্জস্য থাকায় আবেদনটি গ্রহণ করা সম্ভব হয়নি। 
+                                                    অনুগ্রহ করে আমাদের হেল্পলাইনে যোগাযোগ করুন।
+                                                </p>
+                                                <div className="flex justify-center gap-4">
+                                                    <a href="tel:+8801626777076" className="bg-slate-900 text-white px-6 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-800">
+                                                        <HelpCircle size={18}/> যোগাযোগ করুন
+                                                    </a>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="w-20 h-20 bg-yellow-50 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
+                                                    <Clock size={40} className="text-yellow-600"/>
+                                                </div>
+                                                <h2 className="text-2xl font-bold text-slate-800 mb-3">আপনার আবেদনটি যাচাই করা হচ্ছে</h2>
+                                                <p className="text-slate-600 mb-8 leading-relaxed">
+                                                    আপনার পেমেন্ট এবং তথ্য আমাদের সিস্টেমে জমা হয়েছে। অ্যাডমিন প্যানেল থেকে ভেরিফিকেশন সম্পন্ন হলে 
+                                                    আপনি এই পেজেই ক্লাসরুমের এক্সেস পাবেন। সাধারণত ২৪ ঘন্টার মধ্যে এটি সম্পন্ন হয়।
+                                                </p>
+                                                
+                                                <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 inline-block w-full max-w-md text-left">
+                                                    <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">আবেদনের তথ্য</h4>
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Name</span>
+                                                            <span className="font-bold text-slate-800">{ecosystemData.name}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Trx ID</span>
+                                                            <span className="font-mono font-bold text-slate-800 bg-white px-2 rounded border border-slate-200">{ecosystemData.transactionId}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Payment Method</span>
+                                                            <span className="font-bold text-blue-600">{ecosystemData.paymentMethod}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span className="text-slate-600">Submitted At</span>
+                                                            <span className="text-slate-800">{ecosystemData.createdAt ? new Date(ecosystemData.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="mt-8">
+                                                    <button onClick={fetchApplications} className="text-blue-600 font-bold flex items-center justify-center gap-2 hover:underline mx-auto">
+                                                        <RefreshCw size={16}/> স্ট্যাটাস চেক করুন
+                                                    </button>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
-                                </div>
-                                
-                                {/* Payment Info */}
-                                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                                     <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Wallet size={18} className="text-slate-500"/> পেমেন্ট তথ্য</h4>
-                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                                         <div className="bg-slate-50 p-4 rounded-xl">
-                                             <p className="text-xs text-slate-500 uppercase">ভর্তি ফি (Paid)</p>
-                                             <p className="font-bold text-slate-800">৳ ১,৫০০</p>
-                                         </div>
-                                         <div className="bg-slate-50 p-4 rounded-xl">
-                                             <p className="text-xs text-slate-500 uppercase">১ম মডিউল (Paid)</p>
-                                             <p className="font-bold text-slate-800">৳ ২,০০০</p>
-                                         </div>
-                                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                             <p className="text-xs text-blue-600 uppercase font-bold">পরবর্তী পেমেন্ট</p>
-                                             <p className="font-bold text-blue-800">৳ ২,০০০</p>
-                                         </div>
-                                         <div className="bg-slate-50 p-4 rounded-xl">
-                                             <p className="text-xs text-slate-500 uppercase">তারিখ</p>
-                                             <p className="font-bold text-slate-800">পরবর্তী মাসের ৫ তারিখ</p>
-                                         </div>
-                                     </div>
-                                </div>
+                                )}
                              </div>
                         )}
 
