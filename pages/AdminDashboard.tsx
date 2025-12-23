@@ -149,7 +149,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         }, 1000);
     };
 
-    // Helper to determine display role on certificate (duplicated logic for consistency)
+    // Helper to determine display role on certificate
     const getCertDisplayRole = (member: any) => {
         const simpleCategories = ['Campus Ambassador', 'Volunteer'];
         if (member.category && !simpleCategories.includes(member.category)) {
@@ -185,7 +185,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                         phone: cols[1].trim(),
                         email: cols[2].trim(),
                         role: cols[3].trim(),
-                        category: cols[4]?.trim() || 'Volunteer', // Added category to CSV support
+                        category: cols[4]?.trim() || 'Volunteer',
                         userId: currentUser.uid, 
                         userEmail: currentUser.email || ''
                     });
@@ -277,10 +277,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             return;
         }
 
-        // Logic for auto-setting role based on category
         let finalRole = newMember.role;
         if (['Campus Ambassador', 'Volunteer'].includes(newMember.category || '')) {
-            finalRole = newMember.category!; // Role becomes the category name
+            finalRole = newMember.category!;
         } else if (!finalRole) {
             alert("Position (Role) is required for this category.");
             return;
@@ -324,6 +323,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             if (type === 'member') await deleteCommunityMember(id);
             await fetchData();
         } catch (error) { alert("Delete failed"); }
+    };
+
+    // Actions for Ecosystem and Affiliates
+    const handleEcosystemStatus = async (id: string, status: string) => {
+        try { await updateEcosystemAppStatus(id, status); fetchData(); } catch(e) { alert("Failed"); }
+    };
+
+    const handleAffiliateStatus = async (id: string, status: string, name?: string) => {
+        const referralCode = status === 'approved' && name ? name.split(' ')[0].toUpperCase() + Math.floor(100 + Math.random() * 900) : undefined;
+        try { await updateAffiliateStatus(id, status, referralCode); fetchData(); } catch(e) { alert("Failed"); }
     };
 
     // --- Filter Logic for Community Members ---
@@ -538,7 +547,113 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                 </div>
                             </div>
                         )}
-                        {/* Other Tabs omitted for brevity as they remain largely same, just included in activeTab logic above */}
+
+                        {activeTab === 'users' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <h3 className="p-6 border-b font-bold">Registered Users</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50"><tr><th className="p-4">Name</th><th className="p-4">Email</th><th className="p-4">Joined</th></tr></thead>
+                                        <tbody className="divide-y">
+                                            {usersList.map(u => (
+                                                <tr key={u.id} className="hover:bg-slate-50"><td className="p-4 flex items-center gap-3"><div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600">{u.name?.charAt(0)}</div>{u.name}</td><td className="p-4">{u.email}</td><td className="p-4">{u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td></tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'ecosystem' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <h3 className="p-6 border-b font-bold">Ecosystem Applications</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50"><tr><th className="p-4">Name</th><th className="p-4">Phone</th><th className="p-4">TrxID</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead>
+                                        <tbody className="divide-y">
+                                            {ecosystemApps.map(app => (
+                                                <tr key={app.id} className="hover:bg-slate-50">
+                                                    <td className="p-4 font-bold">{app.name}</td>
+                                                    <td className="p-4">{app.phone}</td>
+                                                    <td className="p-4 font-mono">{app.transactionId}</td>
+                                                    <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${app.status==='approved'?'bg-green-100 text-green-700':app.status==='rejected'?'bg-red-100 text-red-700':'bg-yellow-100 text-yellow-700'}`}>{app.status}</span></td>
+                                                    <td className="p-4 flex gap-2">
+                                                        <button onClick={() => handleEcosystemStatus(app.id!, 'approved')} className="text-green-600 hover:bg-green-50 p-1 rounded"><CheckCircle size={18}/></button>
+                                                        <button onClick={() => handleEcosystemStatus(app.id!, 'rejected')} className="text-red-600 hover:bg-red-50 p-1 rounded"><XCircle size={18}/></button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'community' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <h3 className="p-6 border-b font-bold">Affiliate & CA Requests</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50"><tr><th className="p-4">Name</th><th className="p-4">Type</th><th className="p-4">Phone</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead>
+                                        <tbody className="divide-y">
+                                            {affiliates.map(aff => (
+                                                <tr key={aff.id} className="hover:bg-slate-50">
+                                                    <td className="p-4 font-bold">{aff.name}</td>
+                                                    <td className="p-4">{aff.type}</td>
+                                                    <td className="p-4">{aff.phone}</td>
+                                                    <td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${aff.status==='approved'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>{aff.status}</span></td>
+                                                    <td className="p-4 flex gap-2">
+                                                        {aff.status !== 'approved' && <button onClick={() => handleAffiliateStatus(aff.id!, 'approved', aff.name)} className="text-green-600 hover:bg-green-50 p-1 rounded"><CheckCircle size={18}/></button>}
+                                                        <button onClick={() => handleAffiliateStatus(aff.id!, 'rejected')} className="text-red-600 hover:bg-red-50 p-1 rounded"><XCircle size={18}/></button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'analytics' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <h3 className="p-6 border-b font-bold">Job Interest Tracking</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50"><tr><th className="p-4">User</th><th className="p-4">Job Title</th><th className="p-4">Time</th></tr></thead>
+                                        <tbody className="divide-y">
+                                            {jobInterests.map(ji => (
+                                                <tr key={ji.id} className="hover:bg-slate-50">
+                                                    <td className="p-4">{ji.userName} ({ji.userEmail})</td>
+                                                    <td className="p-4 font-bold text-blue-600">{ji.jobTitle}</td>
+                                                    <td className="p-4 text-slate-500">{ji.clickedAt ? new Date(ji.clickedAt.seconds * 1000).toLocaleString() : 'N/A'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'courses' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div className="p-6 border-b flex justify-between items-center">
+                                    <h3 className="font-bold">Manage Courses</h3>
+                                    <button onClick={openNewCourseModal} className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><Plus size={16}/> Add Course</button>
+                                </div>
+                                <div className="p-6 grid gap-4">
+                                    {courses.map(c => (
+                                        <div key={c.id} className="border p-4 rounded-xl flex justify-between items-center">
+                                            <div><h4 className="font-bold">{c.title}</h4><p className="text-sm text-slate-500">{c.instructor}</p></div>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => openEditCourseModal(c)} className="text-blue-600 p-2"><Edit size={18}/></button>
+                                                <button onClick={() => handleDelete('course', c.id)} className="text-red-600 p-2"><Trash2 size={18}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {courses.length === 0 && <p className="text-slate-400 text-center">No courses found.</p>}
+                                </div>
+                            </div>
+                        )}
                         
                     </>
                 )}
@@ -626,6 +741,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                         <div><label className="block text-sm font-bold text-slate-700 mb-1">Full Content</label><textarea required rows={10} value={newBlog.content} onChange={e => setNewBlog({...newBlog, content: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-mono text-sm" placeholder="Write full article here..."></textarea></div>
                                      </div>
                                      <button disabled={formLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all text-lg shadow-lg">{formLoading ? 'Saving...' : 'Publish Blog'}</button>
+                                </form>
+                            )}
+                            
+                            {modalType === 'course' && (
+                                <form onSubmit={handleSaveCourse} className="space-y-4">
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-1">Course Title</label><input required value={newCourse.title} onChange={e => setNewCourse({...newCourse, title: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-white"/></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-1">Instructor</label><input required value={newCourse.instructor} onChange={e => setNewCourse({...newCourse, instructor: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-white"/></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 mb-1">Price</label><input required value={newCourse.price} onChange={e => setNewCourse({...newCourse, price: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-white"/></div>
+                                    <button disabled={formLoading} type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">{formLoading ? 'Saving...' : 'Save Course'}</button>
                                 </form>
                             )}
                         </div>
