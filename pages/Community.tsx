@@ -1,14 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TrendingUp, Award, Users, CheckCircle, Clock, Lock, ArrowRight, Coins, Download, ShieldCheck } from 'lucide-react';
 import { User, Affiliate } from '../types';
 import { saveAffiliate, getUserApplications, getCommunityMemberByPhone, signInWithGoogle } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
-
-declare global {
-  interface Window {
-    jspdf: any;
-  }
-}
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface CommunityProps {
     user: User | null;
@@ -26,6 +22,8 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
     const [certName, setCertName] = useState('');
     const [certPhone, setCertPhone] = useState('');
     const [certLoading, setCertLoading] = useState(false);
+    const certificateRef = useRef<HTMLDivElement>(null);
+    const [previewMember, setPreviewMember] = useState<any>(null);
 
     useEffect(() => {
         const checkStatus = async () => {
@@ -84,6 +82,7 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
     const generateCertificate = async (e: React.FormEvent) => {
         e.preventDefault();
         setCertLoading(true);
+        setPreviewMember(null);
 
         try {
             // Verify User in DB
@@ -95,85 +94,59 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                 return;
             }
 
-            // Generate PDF
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: 'landscape',
-                unit: 'px',
-                format: 'a4'
+            // Set data for preview to render
+            setPreviewMember({
+                ...member,
+                nameForCert: certName || member.name,
+                issueDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
             });
 
-            // --- Certificate Design ---
-            // Background
-            doc.setFillColor(255, 255, 255);
-            doc.rect(0, 0, 632, 447, 'F');
-            
-            // Border
-            doc.setLineWidth(10);
-            doc.setDrawColor(37, 99, 235); // Blue
-            doc.rect(10, 10, 612, 427);
-            
-            // Header
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(40);
-            doc.setTextColor(30, 41, 59);
-            doc.text("Certificate of Appreciation", 316, 80, { align: 'center' });
-            
-            doc.setFontSize(14);
-            doc.setFont("helvetica", "normal");
-            doc.text("This certificate is proudly presented to", 316, 110, { align: 'center' });
+            // Wait a bit for DOM to render the certificate
+            setTimeout(async () => {
+                if (certificateRef.current) {
+                    const canvas = await html2canvas(certificateRef.current, {
+                        scale: 3, // High resolution for crisp text
+                        useCORS: true, // For external images
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
 
-            // Name
-            doc.setFontSize(32);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(37, 99, 235);
-            doc.text(certName || member.name, 316, 160, { align: 'center' });
+                    const imgData = canvas.toDataURL('image/png');
+                    // A4 Landscape dimensions in px at 96 DPI is approx 1123x794
+                    // We match the PDF size to the canvas aspect ratio
+                    const pdf = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'px',
+                        format: [canvas.width / 3, canvas.height / 3] // Adjusting for scale factor
+                    });
 
-            // Body
-            doc.setFontSize(16);
-            doc.setTextColor(71, 85, 105);
-            doc.setFont("helvetica", "normal");
-            const text = "In recognition of outstanding contribution and active participation as a valued member of the One Way School Community.";
-            const splitText = doc.splitTextToSize(text, 500);
-            doc.text(splitText, 316, 200, { align: 'center' });
-
-            doc.setFontSize(12);
-            doc.setTextColor(100, 116, 139);
-            doc.text(`Position: ${member.role}`, 316, 250, { align: 'center' });
-            doc.text(`Date: ${new Date().toLocaleDateString()}`, 316, 270, { align: 'center' });
-
-            // Signatures Section
-            const sigY = 350;
-            
-            // Sifatur Rahman
-            doc.addImage("https://iili.io/KB8jgte.md.png", "PNG", 80, sigY - 40, 80, 40);
-            doc.setFontSize(10);
-            doc.setDrawColor(0);
-            doc.setLineWidth(1);
-            doc.line(70, sigY, 170, sigY);
-            doc.text("Sifatur Rahman", 120, sigY + 15, { align: 'center' });
-            doc.text("Founder", 120, sigY + 25, { align: 'center' });
-
-            // Faria Haque
-            doc.addImage("https://iili.io/KB8j4ou.md.png", "PNG", 276, sigY - 40, 80, 40);
-            doc.line(266, sigY, 366, sigY);
-            doc.text("Faria Haque", 316, sigY + 15, { align: 'center' });
-            doc.text("Co-Founder", 316, sigY + 25, { align: 'center' });
-
-            // Dipto Halder
-            doc.addImage("https://iili.io/KTuZeGp.png", "PNG", 472, sigY - 40, 80, 40);
-            doc.line(462, sigY, 562, sigY);
-            doc.text("Dipto Halder", 512, sigY + 15, { align: 'center' });
-            doc.text("Co-Founder", 512, sigY + 25, { align: 'center' });
-
-            doc.save(`OWS_Certificate_${member.name}.pdf`);
+                    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3);
+                    pdf.save(`OWS_Certificate_${member.name}.pdf`);
+                }
+                setCertLoading(false);
+            }, 2000); // Slightly longer wait to ensure fonts load
 
         } catch (error) {
             console.error(error);
             alert("Error generating certificate.");
-        } finally {
             setCertLoading(false);
         }
+    };
+
+    // Helper to determine display role based on category
+    const getDisplayRole = (member: any) => {
+        const simpleCategories = ['Campus Ambassador', 'Volunteer'];
+        if (member.category && !simpleCategories.includes(member.category)) {
+            // For Central, Division, District etc. show Category AND Role
+            return (
+                <div className="flex flex-col items-center">
+                    <span className="text-[#1e3a8a] font-bold">{member.role}</span>
+                    <span className="text-sm text-slate-500 font-normal uppercase tracking-wider mt-1">{member.category}</span>
+                </div>
+            );
+        }
+        // For CA/Volunteer or if no category, just show Role
+        return <span className="text-[#1e3a8a] font-bold">{member.role}</span>;
     };
 
     return (
@@ -213,7 +186,7 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                                 <input 
                                     required 
                                     type="text" 
-                                    placeholder="আপনার পুরো নাম (ইংরেজিতে)" 
+                                    placeholder="আপনার নাম (বাংলায় বা ইংরেজিতে)" 
                                     value={certName} 
                                     onChange={e => setCertName(e.target.value)}
                                     className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"
@@ -238,6 +211,91 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                     </div>
                 </div>
             </section>
+
+            {/* HIDDEN CERTIFICATE TEMPLATE */}
+            <div style={{ position: 'absolute', top: -9999, left: -9999 }}>
+                {previewMember && (
+                    <div ref={certificateRef} className="w-[1123px] h-[794px] relative bg-white overflow-hidden text-slate-900 font-['Hind_Siliguri']">
+                        
+                        {/* --- Background & Border --- */}
+                        <div className="absolute inset-0 bg-white"></div>
+                        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#444 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                        <div className="absolute inset-6 border-[8px] border-[#1e3a8a] z-10"></div>
+                        <div className="absolute inset-9 border-[2px] border-[#DAA520] z-10"></div>
+
+                        {/* --- Content Area --- */}
+                        <div className="relative z-20 h-full w-full flex flex-col items-center pt-24 pb-12 px-20 text-center">
+                            
+                            <img src="https://iili.io/f3k62rG.md.png" alt="Logo" className="h-20 object-contain mb-6" />
+
+                            <h1 className="text-5xl font-serif font-bold text-[#1e3a8a] tracking-wide mb-2 uppercase" style={{ fontFamily: 'Playfair Display, serif' }}>
+                                Certificate of Recognition
+                            </h1>
+                            <p className="text-lg text-[#DAA520] font-medium tracking-[0.3em] uppercase mb-10">
+                                Official Membership
+                            </p>
+
+                            <p className="text-xl text-slate-500 font-serif italic mb-4">This certificate is proudly presented to</p>
+
+                            <div className="w-full max-w-3xl border-b-2 border-slate-300 pb-4 mb-6">
+                                <h2 className="text-5xl font-bold text-slate-900 capitalize" style={{ fontFamily: 'Hind Siliguri, sans-serif' }}>
+                                    {previewMember.nameForCert}
+                                </h2>
+                            </div>
+
+                            <p className="text-xl text-slate-600 leading-relaxed max-w-4xl mb-8">
+                                For successfully securing a verified position as a <span className="font-bold text-[#1e3a8a]">Community Member</span> at 
+                                One Way School. We recognize your dedication towards personal development and leadership.
+                            </p>
+
+                            <div className="flex justify-center gap-16 mb-16 w-full px-20 items-start">
+                                <div className="text-center">
+                                    <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-1">Membership ID</p>
+                                    <p className="text-xl font-mono font-bold text-slate-800">OWS-{previewMember.id ? previewMember.id.slice(0,6).toUpperCase() : 'PENDING'}</p>
+                                </div>
+                                <div className="text-center border-l border-r border-slate-200 px-16 min-w-[300px]">
+                                    <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-2">Role / Position</p>
+                                    <div className="text-xl">
+                                        {getDisplayRole(previewMember)}
+                                    </div>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-1">Date of Issue</p>
+                                    <p className="text-xl font-bold text-slate-800">{previewMember.issueDate}</p>
+                                </div>
+                            </div>
+
+                            <div className="absolute bottom-16 left-0 w-full px-28 flex justify-between items-end">
+                                
+                                {/* Signature 1 */}
+                                <div className="flex flex-col items-center w-56">
+                                    <img src="https://iili.io/KB8jgte.md.png" alt="Sig" className="h-14 object-contain mb-[-15px] z-10 filter grayscale brightness-50" />
+                                    <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                    <p className="font-bold text-slate-800 text-base">Sifatur Rahman</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-wider">Founder</p>
+                                </div>
+
+                                {/* Signature 2 */}
+                                <div className="flex flex-col items-center w-56">
+                                    <img src="https://iili.io/KB8j4ou.md.png" alt="Sig" className="h-14 object-contain mb-[-15px] z-10 filter grayscale brightness-50" />
+                                    <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                    <p className="font-bold text-slate-800 text-base">Faria Hoque</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-wider">Co-Founder</p>
+                                </div>
+
+                                {/* Signature 3 - FIXED SPELLING */}
+                                <div className="flex flex-col items-center w-56">
+                                    <img src="https://iili.io/KTuZeGp.png" alt="Sig" className="h-14 object-contain mb-[-15px] z-10 filter grayscale brightness-50" />
+                                    <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                    <p className="font-bold text-slate-800 text-base">Dipta Halder</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-wider">Co-Founder</p>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* 2. Affiliate Section */}
             <section className="py-20 bg-slate-50">

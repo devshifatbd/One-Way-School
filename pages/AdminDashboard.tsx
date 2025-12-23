@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
     getLeads, getAffiliates, getUsers, getJobs, saveJob, updateJob, deleteJob, 
     getBlogPosts, saveBlogPost, updateBlogPost, deleteBlogPost, 
     getCourses, saveCourse, updateCourse, deleteCourse, updateAffiliateStatus,
     getJobInterests, getEcosystemApplications, updateEcosystemAppStatus,
     getCommunityMembers, saveCommunityMember, deleteCommunityMember, bulkSaveCommunityMembers,
-    loginWithEmail, logout 
+    loginWithEmail, logout, auth, updateData
 } from '../services/firebase';
 import { User, Lead, Affiliate, Job, BlogPost, Course, JobInterest, EcosystemApplication, CommunityMember } from '../types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
     Users, LayoutDashboard, Share2, Lock, Briefcase, BookOpen, 
-    GraduationCap, Plus, Trash2, X, ChevronRight, Menu, ChevronLeft, LogOut, Search, Globe, Chrome, Link as LinkIcon, Edit, CheckCircle, XCircle, MousePointerClick, CreditCard, Eye, Database, FileText, Download, Upload
+    GraduationCap, Plus, Trash2, X, ChevronRight, Menu, ChevronLeft, LogOut, Search, Globe, Chrome, Link as LinkIcon, Edit, CheckCircle, XCircle, MousePointerClick, CreditCard, Eye, Database, FileText, Download, Upload, Filter
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface AdminDashboardProps {
     user: User | null;
@@ -44,6 +46,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const [formLoading, setFormLoading] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
+    // Community Member specific states
+    const [categoryFilter, setCategoryFilter] = useState('All');
+    const [memberSearch, setMemberSearch] = useState('');
+    const [certGeneratingId, setCertGeneratingId] = useState<string | null>(null);
+    const [certMember, setCertMember] = useState<any>(null); // For hidden certificate render
+    const adminCertRef = useRef<HTMLDivElement>(null);
+
+    const MEMBER_CATEGORIES = [
+        'Central Team',
+        'Sub Central Team',
+        'Division Team',
+        'District Team',
+        'Campus Ambassador',
+        'Volunteer'
+    ];
+
     // Initial States
     const initialJobState: Job = {
         title: '', company: '', vacancy: '', deadline: '', 
@@ -57,7 +75,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const [newJob, setNewJob] = useState<Job>(initialJobState);
     const [newBlog, setNewBlog] = useState<BlogPost>({ title: '', excerpt: '', author: 'Admin', imageUrl: '', content: '' });
     const [newCourse, setNewCourse] = useState<Course>({ title: '', instructor: '', price: '', duration: '', imageUrl: '', category: '' });
-    const [newMember, setNewMember] = useState<CommunityMember>({ name: '', phone: '', email: '', role: '' });
+    const [newMember, setNewMember] = useState<CommunityMember>({ name: '', phone: '', email: '', role: '', category: 'Volunteer' });
 
     // CSV Upload
     const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -90,10 +108,66 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         setLoading(false);
     };
 
+    // --- Certificate Generation Helper ---
+    const handleAdminCertDownload = async (member: CommunityMember) => {
+        if(!member.id) return;
+        setCertGeneratingId(member.id);
+        
+        // Prepare data for the hidden template
+        setCertMember({
+            ...member,
+            nameForCert: member.name,
+            issueDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        });
+
+        // Wait for render
+        setTimeout(async () => {
+            if (adminCertRef.current) {
+                try {
+                    const canvas = await html2canvas(adminCertRef.current, {
+                        scale: 3,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'px',
+                        format: [canvas.width / 3, canvas.height / 3]
+                    });
+
+                    pdf.addImage(imgData, 'PNG', 0, 0, canvas.width / 3, canvas.height / 3);
+                    pdf.save(`OWS_Certificate_${member.name}.pdf`);
+                } catch(e) {
+                    alert("Error generating PDF");
+                }
+            }
+            setCertGeneratingId(null);
+            setCertMember(null); // Clean up
+        }, 1000);
+    };
+
+    // Helper to determine display role on certificate (duplicated logic for consistency)
+    const getCertDisplayRole = (member: any) => {
+        const simpleCategories = ['Campus Ambassador', 'Volunteer'];
+        if (member.category && !simpleCategories.includes(member.category)) {
+            return (
+                <div className="flex flex-col items-center">
+                    <span className="text-[#1e3a8a] font-bold">{member.role}</span>
+                    <span className="text-sm text-slate-500 font-normal uppercase tracking-wider mt-1">{member.category}</span>
+                </div>
+            );
+        }
+        return <span className="text-[#1e3a8a] font-bold">{member.role}</span>;
+    };
+
     // --- CSV Handlers ---
     const handleCsvUpload = async (e: React.FormEvent) => {
         e.preventDefault();
-        if(!csvFile) return;
+        const currentUser = auth.currentUser; 
+        if(!csvFile || !currentUser) return;
         setFormLoading(true);
 
         const reader = new FileReader();
@@ -101,7 +175,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             const text = event.target?.result as string;
             // Simple CSV parser
             const rows = text.split('\n').slice(1); // Skip header
-            const members: CommunityMember[] = [];
+            const members: any[] = [];
             
             rows.forEach(row => {
                 const cols = row.split(',');
@@ -110,7 +184,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                         name: cols[0].trim(),
                         phone: cols[1].trim(),
                         email: cols[2].trim(),
-                        role: cols[3].trim()
+                        role: cols[3].trim(),
+                        category: cols[4]?.trim() || 'Volunteer', // Added category to CSV support
+                        userId: currentUser.uid, 
+                        userEmail: currentUser.email || ''
                     });
                 }
             });
@@ -128,8 +205,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     };
 
     const downloadCsv = () => {
-        const header = "Name,Phone,Email,Role\n";
-        const rows = communityMembers.map(m => `${m.name},${m.phone},${m.email},${m.role}`).join("\n");
+        const header = "Name,Phone,Email,Role,Category\n";
+        const rows = communityMembers.map(m => `${m.name},${m.phone},${m.email},${m.role},${m.category || ''}`).join("\n");
         const blob = new Blob([header + rows], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -153,7 +230,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const openEditBlogModal = (blog: BlogPost) => { setEditingId(blog.id || null); setNewBlog(blog); setModalType('blog'); setIsModalOpen(true); };
     const openNewCourseModal = () => { setEditingId(null); setNewCourse({ title: '', instructor: '', price: '', duration: '', imageUrl: '', category: '' }); setModalType('course'); setIsModalOpen(true); };
     const openEditCourseModal = (course: Course) => { setEditingId(course.id || null); setNewCourse(course); setModalType('course'); setIsModalOpen(true); };
-    const openNewMemberModal = () => { setNewMember({ name: '', phone: '', email: '', role: '' }); setModalType('member'); setIsModalOpen(true); };
+    
+    const openNewMemberModal = () => { setEditingId(null); setNewMember({ name: '', phone: '', email: '', role: '', category: 'Volunteer' }); setModalType('member'); setIsModalOpen(true); };
+    const openEditMemberModal = (m: CommunityMember) => { setEditingId(m.id || null); setNewMember({ ...m, category: m.category || 'Volunteer' }); setModalType('member'); setIsModalOpen(true); };
+
 
     // Save Handlers
     const handleSaveJob = async (e: React.FormEvent) => {
@@ -186,29 +266,51 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const handleSaveMember = async (e: React.FormEvent) => {
         e.preventDefault();
         
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            alert("Session expired. Please login again.");
+            return;
+        }
+
         if (!newMember.name || !newMember.phone) {
             alert("Name and Phone are required.");
             return;
         }
 
+        // Logic for auto-setting role based on category
+        let finalRole = newMember.role;
+        if (['Campus Ambassador', 'Volunteer'].includes(newMember.category || '')) {
+            finalRole = newMember.category!; // Role becomes the category name
+        } else if (!finalRole) {
+            alert("Position (Role) is required for this category.");
+            return;
+        }
+
         setFormLoading(true);
         try {
-            // Explicitly creating object to avoid any undefined issues
             const memberData = {
                 name: newMember.name,
                 phone: newMember.phone,
                 email: newMember.email || '',
-                role: newMember.role || ''
+                category: newMember.category,
+                role: finalRole,
+                userId: currentUser.uid, 
+                userEmail: currentUser.email || ''
             };
             
-            await saveCommunityMember(memberData);
-            setNewMember({ name: '', phone: '', email: '', role: '' });
+            if (editingId) {
+                await updateData('community_members', editingId, memberData);
+            } else {
+                await saveCommunityMember(memberData);
+            }
+            
+            setNewMember({ name: '', phone: '', email: '', role: '', category: 'Volunteer' });
             setIsModalOpen(false);
             await fetchData(); 
-            alert("Member Added Successfully!");
+            alert("Member Saved!");
         } catch(e: any) { 
             console.error(e);
-            alert("Error adding member: " + e.message); 
+            alert("Error: " + e.message); 
         }
         setFormLoading(false);
     };
@@ -224,22 +326,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         } catch (error) { alert("Delete failed"); }
     };
 
-    const handleAffiliateAction = async (id: string, action: 'approved' | 'rejected', userId?: string) => {
-        if(!window.confirm(`Confirm ${action}?`)) return;
-        try {
-            const refCode = action === 'approved' && userId ? `OWS-${userId.slice(0,5).toUpperCase()}` : undefined;
-            await updateAffiliateStatus(id, action, refCode);
-            await fetchData();
-        } catch(e) { alert("Action failed"); }
-    };
-
-    const handleEcoAppAction = async (id: string, action: 'approved' | 'rejected') => {
-        if(!window.confirm(`Confirm ${action}?`)) return;
-        try {
-            await updateEcosystemAppStatus(id, action);
-            await fetchData();
-        } catch(e) { alert("Action failed"); }
-    };
+    // --- Filter Logic for Community Members ---
+    const filteredMembers = communityMembers.filter(m => {
+        const matchesCategory = categoryFilter === 'All' || m.category === categoryFilter;
+        const matchesSearch = memberSearch === '' || 
+            m.name.toLowerCase().includes(memberSearch.toLowerCase()) || 
+            m.phone.includes(memberSearch) ||
+            (m.id && m.id.toLowerCase().includes(memberSearch.toLowerCase()));
+        return matchesCategory && matchesSearch;
+    });
 
     if (!user || !ADMIN_EMAILS.includes(user.email || '')) return <div className="p-10 text-center">Access Denied</div>;
 
@@ -287,42 +382,105 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                     <>
                         {activeTab === 'overview' && (
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-500 font-medium mb-2 text-sm">Users</h3><p className="text-4xl font-bold text-slate-800">{usersList.length}</p></div>
-                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-500 font-medium mb-2 text-sm">Members</h3><p className="text-4xl font-bold text-blue-600">{communityMembers.length}</p></div>
-                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-500 font-medium mb-2 text-sm">Ecosystem Students</h3><p className="text-4xl font-bold text-purple-600">{ecosystemApps.length}</p></div>
-                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-500 font-medium mb-2 text-sm">Pending Affiliates</h3><p className="text-4xl font-bold text-green-600">{affiliates.filter(a => a.status === 'pending').length}</p></div>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-500 font-medium mb-2 text-sm">Total Users</h3><p className="text-4xl font-bold text-slate-800">{usersList.length}</p></div>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-500 font-medium mb-2 text-sm">Total Members</h3><p className="text-4xl font-bold text-blue-600">{communityMembers.length}</p></div>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-500 font-medium mb-2 text-sm">Total Jobs</h3><p className="text-4xl font-bold text-purple-600">{jobs.length}</p></div>
+                                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-slate-500 font-medium mb-2 text-sm">Total Blogs</h3><p className="text-4xl font-bold text-green-600">{blogs.length}</p></div>
                              </div>
                         )}
 
                         {activeTab === 'database' && (
                              <div className="space-y-6">
-                                 {/* Actions */}
-                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
-                                     <div className="flex gap-2">
-                                         <button onClick={openNewMemberModal} className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-800"><Plus size={18}/> Add Member</button>
-                                         <button onClick={downloadCsv} className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-200"><Download size={18}/> Export CSV</button>
+                                 {/* Category Tabs */}
+                                 <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                                     <button 
+                                        onClick={() => setCategoryFilter('All')} 
+                                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${categoryFilter === 'All' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+                                     >
+                                         All
+                                     </button>
+                                     {MEMBER_CATEGORIES.map(cat => (
+                                         <button 
+                                            key={cat} 
+                                            onClick={() => setCategoryFilter(cat)} 
+                                            className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${categoryFilter === cat ? 'bg-blue-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+                                         >
+                                             {cat}
+                                         </button>
+                                     ))}
+                                 </div>
+
+                                 {/* Actions & Search */}
+                                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row flex-wrap gap-4 items-center justify-between">
+                                     <div className="relative w-full md:w-auto">
+                                         <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                         <input 
+                                            type="text" 
+                                            placeholder="Search by Name, Phone, ID..." 
+                                            value={memberSearch}
+                                            onChange={(e) => setMemberSearch(e.target.value)}
+                                            className="pl-10 pr-4 py-2 rounded-lg border border-slate-300 w-full md:w-64 focus:ring-2 focus:ring-blue-500 outline-none"
+                                         />
                                      </div>
-                                     <form onSubmit={handleCsvUpload} className="flex gap-2 items-center bg-slate-50 p-2 rounded-lg border border-slate-200">
-                                         <input type="file" accept=".csv" onChange={e => setCsvFile(e.target.files?.[0] || null)} className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-                                         <button type="submit" disabled={formLoading} className="bg-green-600 text-white px-4 py-2 rounded-full font-bold text-sm hover:bg-green-700 disabled:opacity-50"><Upload size={14}/></button>
-                                     </form>
+                                     <div className="flex gap-2 items-center">
+                                         <button onClick={openNewMemberModal} className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-800 text-sm"><Plus size={16}/> Add Member</button>
+                                         <button onClick={downloadCsv} className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:bg-blue-200 text-sm"><Download size={16}/> CSV</button>
+                                         <div className="h-6 w-px bg-slate-200 mx-2"></div>
+                                         <form onSubmit={handleCsvUpload} className="flex gap-2 items-center">
+                                            <label className="cursor-pointer bg-slate-100 text-slate-600 px-3 py-2 rounded-lg text-sm font-bold hover:bg-slate-200 flex items-center gap-2">
+                                                <Upload size={16}/> Import
+                                                <input type="file" accept=".csv" onChange={e => setCsvFile(e.target.files?.[0] || null)} className="hidden"/>
+                                            </label>
+                                            {csvFile && <button type="submit" disabled={formLoading} className="text-green-600 font-bold text-xs">Save</button>}
+                                         </form>
+                                     </div>
                                  </div>
 
                                  {/* Table */}
                                  <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                                      <div className="overflow-x-auto">
                                          <table className="w-full text-left text-sm">
-                                             <thead className="bg-slate-50 text-slate-500"><tr><th className="p-3">Name</th><th className="p-3">Phone</th><th className="p-3">Email</th><th className="p-3">Position (Role)</th><th className="p-3">Actions</th></tr></thead>
+                                             <thead className="bg-slate-50 text-slate-500">
+                                                 <tr>
+                                                     <th className="p-3">ID</th>
+                                                     <th className="p-3">Name</th>
+                                                     <th className="p-3">Phone</th>
+                                                     <th className="p-3">Category</th>
+                                                     <th className="p-3">Role</th>
+                                                     <th className="p-3 text-right">Actions</th>
+                                                 </tr>
+                                             </thead>
                                              <tbody className="divide-y divide-slate-100">
-                                                 {communityMembers.map((m, i) => (
-                                                     <tr key={i} className="hover:bg-slate-50">
+                                                 {filteredMembers.map((m, i) => (
+                                                     <tr key={i} className="hover:bg-slate-50 group">
+                                                         <td className="p-3 font-mono text-slate-500 text-xs">
+                                                             {m.id ? `OWS-${m.id.slice(0,6).toUpperCase()}` : 'PENDING'}
+                                                         </td>
                                                          <td className="p-3 font-bold text-slate-800">{m.name}</td>
                                                          <td className="p-3 text-slate-600">{m.phone}</td>
-                                                         <td className="p-3 text-slate-600">{m.email}</td>
-                                                         <td className="p-3 font-mono text-blue-600">{m.role}</td>
-                                                         <td className="p-3"><button onClick={() => handleDelete('member', m.id)} className="text-red-400 hover:text-red-600"><Trash2 size={18}/></button></td>
+                                                         <td className="p-3">
+                                                             <span className="px-2 py-1 bg-slate-100 rounded text-xs text-slate-600 font-medium">
+                                                                 {m.category || 'Volunteer'}
+                                                             </span>
+                                                         </td>
+                                                         <td className="p-3 font-medium text-blue-600">{m.role}</td>
+                                                         <td className="p-3 text-right flex justify-end gap-2">
+                                                             <button 
+                                                                onClick={() => handleAdminCertDownload(m)} 
+                                                                disabled={certGeneratingId === m.id}
+                                                                className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"
+                                                                title="Download Certificate"
+                                                             >
+                                                                 {certGeneratingId === m.id ? '...' : <Download size={18}/>}
+                                                             </button>
+                                                             <button onClick={() => openEditMemberModal(m)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit size={18}/></button>
+                                                             <button onClick={() => handleDelete('member', m.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={18}/></button>
+                                                         </td>
                                                      </tr>
                                                  ))}
+                                                 {filteredMembers.length === 0 && (
+                                                     <tr><td colSpan={6} className="p-6 text-center text-slate-400">No members found matching filters</td></tr>
+                                                 )}
                                              </tbody>
                                          </table>
                                      </div>
@@ -330,7 +488,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                              </div>
                         )}
                         
-                        {/* Job Tab Logic (Reused) */}
                         {activeTab === 'jobs' && (
                              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -350,7 +507,38 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                 </div>
                             </div>
                         )}
-                        {/* Other Tabs (Blog, Course, Users, Eco, Analytics) omitted for brevity as they remain largely same, just included in activeTab logic above */}
+
+                        {activeTab === 'blogs' && (
+                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                    <h2 className="text-lg font-bold text-slate-800">All Blogs</h2>
+                                    <button onClick={openNewBlogModal} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all"><Plus size={18}/> New Blog</button>
+                                </div>
+                                <div className="divide-y divide-slate-100">
+                                    {blogs.map(blog => (
+                                        <div key={blog.id} className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <img src={blog.imageUrl} alt={blog.title} className="w-16 h-12 object-cover rounded bg-slate-100" />
+                                                <div>
+                                                    <h4 className="font-bold text-slate-800 text-lg line-clamp-1">{blog.title}</h4>
+                                                    <div className="text-sm text-slate-500 flex gap-2">
+                                                        <span>{blog.author}</span>
+                                                        <span>•</span>
+                                                        <span>{blog.date ? new Date(blog.date.seconds * 1000).toLocaleDateString() : 'N/A'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-2 self-end md:self-center">
+                                                <button onClick={() => openEditBlogModal(blog)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit size={20}/></button>
+                                                <button onClick={() => handleDelete('blog', blog.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={20}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {blogs.length === 0 && <div className="p-8 text-center text-slate-400">No blog posts found.</div>}
+                                </div>
+                            </div>
+                        )}
+                        {/* Other Tabs omitted for brevity as they remain largely same, just included in activeTab logic above */}
                         
                     </>
                 )}
@@ -361,21 +549,54 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
                     <div className="bg-white rounded-2xl w-full max-w-4xl my-8 relative shadow-2xl flex flex-col max-h-[90vh]">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
-                            <h3 className="text-xl font-bold text-slate-800">Manage Content</h3>
+                            <h3 className="text-xl font-bold text-slate-800">{editingId ? 'Edit Content' : 'Add Content'}</h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={24}/></button>
                         </div>
                         <div className="p-6 overflow-y-auto custom-scrollbar">
                             {modalType === 'member' && (
                                 <form onSubmit={handleSaveMember} className="space-y-4">
-                                    <input required value={newMember.name} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full px-4 py-3 bg-white text-slate-900 placeholder-slate-400 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Name"/>
-                                    <input required value={newMember.phone} onChange={e => setNewMember({...newMember, phone: e.target.value})} className="w-full px-4 py-3 bg-white text-slate-900 placeholder-slate-400 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Phone"/>
-                                    <input required value={newMember.email} onChange={e => setNewMember({...newMember, email: e.target.value})} className="w-full px-4 py-3 bg-white text-slate-900 placeholder-slate-400 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Email"/>
-                                    <input required value={newMember.role} onChange={e => setNewMember({...newMember, role: e.target.value})} className="w-full px-4 py-3 bg-white text-slate-900 placeholder-slate-400 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Position (Role)"/>
-                                    <button type="submit" disabled={formLoading} className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition-colors">
-                                        {formLoading ? 'Adding...' : 'Add Member'}
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Name *</label>
+                                            <input required value={newMember.name} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Name"/>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Phone *</label>
+                                            <input required value={newMember.phone} onChange={e => setNewMember({...newMember, phone: e.target.value})} className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Phone"/>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Email</label>
+                                            <input value={newMember.email} onChange={e => setNewMember({...newMember, email: e.target.value})} className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Email"/>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Category</label>
+                                            <select 
+                                                value={newMember.category || 'Volunteer'} 
+                                                onChange={e => setNewMember({...newMember, category: e.target.value})} 
+                                                className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                            >
+                                                {MEMBER_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                            </select>
+                                        </div>
+                                        
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Position (Role)</label>
+                                            {['Campus Ambassador', 'Volunteer'].includes(newMember.category || '') ? (
+                                                <div className="w-full px-4 py-3 bg-slate-100 text-slate-500 border border-slate-200 rounded-lg italic">
+                                                    Role will be automatically set to: <strong>{newMember.category}</strong>
+                                                </div>
+                                            ) : (
+                                                <input required value={newMember.role} onChange={e => setNewMember({...newMember, role: e.target.value})} className="w-full px-4 py-3 bg-white text-slate-900 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. President, Secretary"/>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="submit" disabled={formLoading} className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition-colors mt-4">
+                                        {formLoading ? 'Saving...' : 'Save Member'}
                                     </button>
                                 </form>
                             )}
+                            
                             {modalType === 'job' && (
                                 <form onSubmit={handleSaveJob} className="space-y-8">
                                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -394,11 +615,98 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                     <div className="pt-4 border-t border-slate-100"><button disabled={formLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all text-lg shadow-lg">{formLoading ? 'Publishing...' : 'Publish Job'}</button></div>
                                 </form>
                             )}
-                             {/* ... Blog & Course Forms ... */}
+                            
+                            {modalType === 'blog' && (
+                                <form onSubmit={handleSaveBlog} className="space-y-6">
+                                     <div className="space-y-4">
+                                        <div><label className="block text-sm font-bold text-slate-700 mb-1">Blog Title *</label><input required value={newBlog.title} onChange={e => setNewBlog({...newBlog, title: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900" placeholder="Enter title..."/></div>
+                                        <div><label className="block text-sm font-bold text-slate-700 mb-1">Cover Image URL</label><input required value={newBlog.imageUrl} onChange={e => setNewBlog({...newBlog, imageUrl: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900" placeholder="https://..."/></div>
+                                        <div><label className="block text-sm font-bold text-slate-700 mb-1">Author Name</label><input required value={newBlog.author} onChange={e => setNewBlog({...newBlog, author: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"/></div>
+                                        <div><label className="block text-sm font-bold text-slate-700 mb-1">Short Excerpt (Preview Text)</label><textarea required rows={3} value={newBlog.excerpt} onChange={e => setNewBlog({...newBlog, excerpt: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900"></textarea></div>
+                                        <div><label className="block text-sm font-bold text-slate-700 mb-1">Full Content</label><textarea required rows={10} value={newBlog.content} onChange={e => setNewBlog({...newBlog, content: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-mono text-sm" placeholder="Write full article here..."></textarea></div>
+                                     </div>
+                                     <button disabled={formLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all text-lg shadow-lg">{formLoading ? 'Saving...' : 'Publish Blog'}</button>
+                                </form>
+                            )}
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* Hidden Certificate Render Area for Admin */}
+            <div style={{ position: 'absolute', top: -9999, left: -9999 }}>
+                {certMember && (
+                    <div ref={adminCertRef} className="w-[1123px] h-[794px] relative bg-white overflow-hidden text-slate-900 font-['Hind_Siliguri']">
+                        {/* Copying strict certificate layout from Community.tsx to ensure match */}
+                        <div className="absolute inset-0 bg-white"></div>
+                        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#444 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+                        <div className="absolute inset-6 border-[8px] border-[#1e3a8a] z-10"></div>
+                        <div className="absolute inset-9 border-[2px] border-[#DAA520] z-10"></div>
+
+                        <div className="relative z-20 h-full w-full flex flex-col items-center pt-24 pb-12 px-20 text-center">
+                            <img src="https://iili.io/f3k62rG.md.png" alt="Logo" className="h-20 object-contain mb-6" />
+
+                            <h1 className="text-5xl font-serif font-bold text-[#1e3a8a] tracking-wide mb-2 uppercase" style={{ fontFamily: 'Playfair Display, serif' }}>
+                                Certificate of Recognition
+                            </h1>
+                            <p className="text-lg text-[#DAA520] font-medium tracking-[0.3em] uppercase mb-10">
+                                Official Membership
+                            </p>
+
+                            <p className="text-xl text-slate-500 font-serif italic mb-4">This certificate is proudly presented to</p>
+
+                            <div className="w-full max-w-3xl border-b-2 border-slate-300 pb-4 mb-6">
+                                <h2 className="text-5xl font-bold text-slate-900 capitalize" style={{ fontFamily: 'Hind Siliguri, sans-serif' }}>
+                                    {certMember.nameForCert}
+                                </h2>
+                            </div>
+
+                            <p className="text-xl text-slate-600 leading-relaxed max-w-4xl mb-8">
+                                For successfully securing a verified position as a <span className="font-bold text-[#1e3a8a]">Community Member</span> at 
+                                One Way School. We recognize your dedication towards personal development and leadership.
+                            </p>
+
+                            <div className="flex justify-center gap-16 mb-16 w-full px-20 items-start">
+                                <div className="text-center">
+                                    <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-1">Membership ID</p>
+                                    <p className="text-xl font-mono font-bold text-slate-800">OWS-{certMember.id ? certMember.id.slice(0,6).toUpperCase() : 'PENDING'}</p>
+                                </div>
+                                <div className="text-center border-l border-r border-slate-200 px-16 min-w-[300px]">
+                                    <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-2">Role / Position</p>
+                                    <div className="text-xl">
+                                        {getCertDisplayRole(certMember)}
+                                    </div>
+                                </div>
+                                <div className="text-center">
+                                    <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-1">Date of Issue</p>
+                                    <p className="text-xl font-bold text-slate-800">{certMember.issueDate}</p>
+                                </div>
+                            </div>
+
+                            <div className="absolute bottom-16 left-0 w-full px-28 flex justify-between items-end">
+                                <div className="flex flex-col items-center w-56">
+                                    <img src="https://iili.io/KB8jgte.md.png" alt="Sig" className="h-14 object-contain mb-[-15px] z-10 filter grayscale brightness-50" />
+                                    <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                    <p className="font-bold text-slate-800 text-base">Sifatur Rahman</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-wider">Founder</p>
+                                </div>
+                                <div className="flex flex-col items-center w-56">
+                                    <img src="https://iili.io/KB8j4ou.md.png" alt="Sig" className="h-14 object-contain mb-[-15px] z-10 filter grayscale brightness-50" />
+                                    <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                    <p className="font-bold text-slate-800 text-base">Faria Hoque</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-wider">Co-Founder</p>
+                                </div>
+                                <div className="flex flex-col items-center w-56">
+                                    <img src="https://iili.io/KTuZeGp.png" alt="Sig" className="h-14 object-contain mb-[-15px] z-10 filter grayscale brightness-50" />
+                                    <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                    <p className="font-bold text-slate-800 text-base">Dipta Halder</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-wider">Co-Founder</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

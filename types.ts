@@ -64,10 +64,13 @@ export interface EcosystemApplication {
 export interface CommunityMember {
     id?: string;
     name: string;
-    phone: string; // Used as unique identifier for login/verification
+    phone: string;
     email: string;
-    role: string; // Position/Role
+    category?: string; // New Category Field
+    role: string; // Position
     createdAt?: any;
+    userId?: string; // Admin's ID who added this member (for permissions)
+    userEmail?: string;  
 }
 
 export interface BlogPost {
