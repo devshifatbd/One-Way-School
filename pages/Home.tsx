@@ -1,27 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
     ArrowRight, Star, Zap, CheckCircle2, Users, Sparkles, Code2, 
     Globe, Briefcase, TrendingUp, Target, CheckCircle, Phone, 
-    Mail, MapPin, ChevronDown, Quote, DollarSign, Award, Gift, UserCircle 
+    Mail, MapPin, ChevronDown, Quote, DollarSign, Award, Gift, UserCircle,
+    Calendar, Clock, ArrowUpRight, BookOpen
 } from 'lucide-react';
-import { User } from '../types';
-import { saveLead, saveAffiliate, signInWithGoogle } from '../services/firebase';
+import { User, Job, BlogPost } from '../types';
+import { saveAffiliate, getJobs, getBlogPosts } from '../services/firebase';
 
 interface HomeProps {
     user: User | null;
 }
 
 const Home: React.FC<HomeProps> = ({ user }) => {
-    // Main Lead Form State
-    const [leadForm, setLeadForm] = useState({
-        name: '', phone: '', email: '', profession: '', goal: '',
-        class_semester: '', institution_type: '', institution_name: '',
-        company_name: '', designation: ''
-    });
-    const [leadImage, setLeadImage] = useState<File | null>(null);
-    const [leadLoading, setLeadLoading] = useState(false);
-    const [leadSuccess, setLeadSuccess] = useState(false);
-
     // Affiliate Form State
     const [affForm, setAffForm] = useState({
         name: '', phone: '', email: '', 
@@ -30,11 +22,21 @@ const Home: React.FC<HomeProps> = ({ user }) => {
     const [affImage, setAffImage] = useState<File | null>(null);
     const [affLoading, setAffLoading] = useState(false);
 
-    // --- Helpers ---
-    const handleLeadChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        setLeadForm({ ...leadForm, [e.target.name]: e.target.value });
-    };
+    // Dynamic Data State
+    const [recentJobs, setRecentJobs] = useState<Job[]>([]);
+    const [recentBlogs, setRecentBlogs] = useState<BlogPost[]>([]);
 
+    useEffect(() => {
+        const fetchDynamicData = async () => {
+            const jobsData = await getJobs();
+            const blogsData = await getBlogPosts();
+            setRecentJobs((jobsData as Job[]).slice(0, 4)); // Top 4 Jobs
+            setRecentBlogs((blogsData as BlogPost[]).slice(0, 3)); // Top 3 Blogs
+        };
+        fetchDynamicData();
+    }, []);
+
+    // --- Helpers ---
     const handleAffChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         setAffForm({ ...affForm, [e.target.id.replace('aff_', '')]: e.target.value });
     };
@@ -63,54 +65,6 @@ const Home: React.FC<HomeProps> = ({ user }) => {
     const scrollToSection = (id: string) => {
         const element = document.getElementById(id);
         if (element) element.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    // --- Handlers ---
-    const handleLeadSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!user) {
-            alert("অনুগ্রহ করে লগইন করুন");
-            return;
-        }
-
-        setLeadLoading(true);
-        try {
-            let imageUrl = '';
-            if (leadImage) {
-                imageUrl = await uploadImage(leadImage) || '';
-            }
-
-            const data = {
-                name: leadForm.name,
-                phone: leadForm.phone,
-                email: leadForm.email,
-                profession: leadForm.profession,
-                goal: leadForm.goal,
-                imageUrl,
-                userId: user.uid,
-                source: 'web_landing_v2',
-                details: leadForm.profession === 'student' ? {
-                    class_semester: leadForm.class_semester,
-                    institution_type: leadForm.institution_type,
-                    institution_name: leadForm.institution_name
-                } : {
-                    company_name: leadForm.company_name,
-                    designation: leadForm.designation
-                }
-            };
-
-            await saveLead(data);
-            setLeadSuccess(true);
-            setLeadForm({
-                name: '', phone: '', email: '', profession: '', goal: '',
-                class_semester: '', institution_type: '', institution_name: '',
-                company_name: '', designation: ''
-            });
-        } catch (error) {
-            alert("Something went wrong");
-        } finally {
-            setLeadLoading(false);
-        }
     };
 
     const handleAffSubmit = async (e: React.FormEvent) => {
@@ -148,6 +102,11 @@ const Home: React.FC<HomeProps> = ({ user }) => {
         <div>
             {/* Hero Section */}
             <section id="home" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-900">
+                {/* Branding Vector Background */}
+                <div className="absolute inset-0 pointer-events-none opacity-5">
+                    <img src="https://iili.io/f3k62rG.md.png" alt="Branding Vector" className="w-[800px] h-[800px] absolute -right-20 -top-20 animate-spin-slow opacity-20" style={{animationDuration: '60s'}} />
+                </div>
+
                 <div className="absolute top-[-10%] right-[-5%] w-[400px] md:w-[700px] h-[400px] md:h-[700px] bg-blue-600/20 rounded-full blur-[100px] animate-float"></div>
                 <div className="absolute bottom-[-10%] left-[-5%] w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-purple-600/20 rounded-full blur-[100px] animate-float-delayed"></div>
                 
@@ -173,9 +132,9 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                     আমাদের প্রোগ্রাম 
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </button>
-                                <button onClick={() => scrollToSection('contact')} className="px-8 py-3.5 rounded-full font-bold text-base md:text-lg text-white border border-white/30 hover:bg-white/10 backdrop-blur-sm transition-all flex items-center justify-center gap-2 group">
-                                    <Zap className="w-5 h-5 group-hover:text-yellow-400 transition-colors" />
-                                    রেজিস্ট্রেশন করুন
+                                <button className="px-8 py-3.5 rounded-full font-bold text-base md:text-lg text-white border border-white/30 hover:bg-white/10 backdrop-blur-sm transition-all flex items-center justify-center gap-2 group cursor-default">
+                                    <Users className="w-5 h-5 text-blue-400" />
+                                    কমিউনিটিতে যোগ দিন
                                 </button>
                             </div>
                         </div>
@@ -204,14 +163,6 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                         <p className="text-slate-300 text-[10px]">৫০০+ মেম্বার</p>
                                     </div>
                                 </div>
-
-                                <div className="absolute top-0 left-10 z-0 opacity-50 animate-spin-slow">
-                                     <Sparkles className="w-8 h-8 text-yellow-400" />
-                                </div>
-                                <div className="absolute top-20 right-10 z-20 opacity-50 animate-bounce">
-                                     <Code2 className="w-8 h-8 text-cyan-400" />
-                                </div>
-                                <div className="absolute inset-0 border-2 border-dashed border-slate-600/30 rounded-full w-[110%] h-[110%] -left-[5%] -top-[5%] z-0 animate-spin-slow" style={{animationDuration: '30s'}}></div>
                             </div>
                         </div>
                     </div>
@@ -220,6 +171,11 @@ const Home: React.FC<HomeProps> = ({ user }) => {
 
             {/* About Section */}
             <section id="about" className="py-16 md:py-24 bg-white relative">
+                 {/* Branding Watermark */}
+                 <div className="absolute -left-20 top-40 opacity-5 pointer-events-none">
+                    <img src="https://iili.io/f3evPnf.md.png" className="w-96 grayscale rotate-90" />
+                </div>
+                
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
                 <div className="container mx-auto px-4 md:px-6">
                     <div className="grid lg:grid-cols-2 gap-10 md:gap-16 items-center">
@@ -269,10 +225,6 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                             <p className="text-xs md:text-sm text-slate-500 mt-1">কোম্পানিগুলো হন্যে হয়ে খুঁজলেও দক্ষ কর্মী (Skilled Resource) পাচ্ছেন না।</p>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="mt-6 md:mt-8 bg-gradient-to-r from-blue-500 to-violet-500 text-white p-3 md:p-4 rounded-xl text-center text-sm md:text-base font-bold shadow-lg shadow-blue-500/30">
-                                    সমাধান: One Way School Ecosystem
                                 </div>
                             </div>
                         </div>
@@ -529,134 +481,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                 </div>
             </section>
 
-            {/* Contact & Lead Form (REORDERED: After Benefits) */}
-            <section id="contact" className="py-16 md:py-24 bg-slate-900 text-white relative">
-                <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute -top-[200px] -left-[200px] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[100px]"></div>
-                    <div className="absolute -bottom-[200px] -right-[200px] w-[500px] h-[500px] bg-violet-600/20 rounded-full blur-[100px]"></div>
-                </div>
-
-                <div className="container mx-auto px-4 md:px-6 relative z-10">
-                    <div className="max-w-5xl mx-auto grid lg:grid-cols-5 gap-8 md:gap-12 bg-slate-800/50 backdrop-blur-lg border border-slate-700 rounded-3xl p-6 md:p-12 shadow-2xl">
-                        
-                        <div className="lg:col-span-2 flex flex-col justify-between">
-                            <div className="mb-8 lg:mb-0">
-                                <h2 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">যুক্ত হোন <br/><span className="text-blue-400">সাফল্যের যাত্রায়</span></h2>
-                                <p className="text-slate-300 mb-6 md:mb-8 leading-relaxed text-sm md:text-base">
-                                    দেরি না করে আজই রেজিস্ট্রেশন করুন। আপনার স্বপ্নের ক্যারিয়ার গড়ার এখনই সঠিক সময়।
-                                </p>
-                                <div className="space-y-4 md:space-y-6">
-                                    <div className="flex items-center gap-4 group">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-all border border-slate-600 group-hover:border-blue-500/50 shrink-0">
-                                            <Phone className="w-4 h-4 md:w-5 md:h-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-base md:text-lg font-medium text-white">+880 1626-777076</p>
-                                            <p className="text-xs md:text-sm text-slate-400">কল করুন সকাল ১০টা - রাত ৮টা</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 group">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-all border border-slate-600 group-hover:border-blue-500/50 shrink-0">
-                                            <Mail className="w-4 h-4 md:w-5 md:h-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-base md:text-lg font-medium text-white break-all">info@onewayschool.com</p>
-                                            <p className="text-xs md:text-sm text-slate-400">যেকোনো তথ্যের জন্য মেইল করুন</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 group">
-                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-blue-600/20 group-hover:text-blue-400 transition-all border border-slate-600 group-hover:border-blue-500/50 shrink-0">
-                                            <MapPin className="w-4 h-4 md:w-5 md:h-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-base md:text-lg font-medium text-white">ঢাকা, বাংলাদেশ</p>
-                                            <p className="text-xs md:text-sm text-slate-400">আমাদের অফিস লোকেশন</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="mt-4 md:mt-8 pt-6 md:pt-8 border-t border-slate-700/50">
-                                <p className="text-xs md:text-sm text-slate-400">© 2025 One Way School</p>
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-3 bg-white rounded-2xl p-6 md:p-8 text-slate-800 shadow-xl">
-                            {leadSuccess ? (
-                                <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                                    <div className="w-16 h-16 md:w-20 md:h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-md icon-hover-bounce">
-                                        <CheckCircle className="w-8 h-8 md:w-10 md:h-10" />
-                                    </div>
-                                    <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-3">অভিনন্দন!</h3>
-                                    <p className="text-sm md:text-base text-slate-600 mb-8 max-w-xs mx-auto">আপনার আবেদন সফলভাবে জমা হয়েছে। আমাদের টিম খুব শীঘ্রই আপনার সাথে যোগাযোগ করবে।</p>
-                                    <button onClick={() => setLeadSuccess(false)} className="text-blue-600 font-bold hover:bg-blue-50 px-6 py-2 rounded-full transition">
-                                        নতুন আবেদন করুন
-                                    </button>
-                                </div>
-                            ) : (
-                                <form onSubmit={handleLeadSubmit} className="space-y-4 md:space-y-5">
-                                    <h3 className="text-base md:text-lg font-bold mb-2 md:mb-4 text-slate-800">আপনি যদি আগ্রহী হোন তাহলে নিচের ফরমটি ফিলাপ করুন</h3>
-                                    
-                                    <input type="text" name="name" required value={leadForm.name} onChange={handleLeadChange} placeholder="আপনার নাম" className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-base" />
-
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        <input type="tel" name="phone" required value={leadForm.phone} onChange={handleLeadChange} placeholder="মোবাইল নম্বর" className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-base" />
-                                        <input type="email" name="email" value={leadForm.email} onChange={handleLeadChange} placeholder="ইমেইল (অপশনাল)" className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-base" />
-                                    </div>
-                                    
-                                    <div className="relative">
-                                        <select name="profession" value={leadForm.profession} onChange={handleLeadChange} className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none appearance-none text-slate-600 text-base cursor-pointer">
-                                            <option value="" disabled>আপনার পেশা নির্বাচন করুন</option>
-                                            <option value="student">শিক্ষার্থী</option>
-                                            <option value="job_holder">চাকুরিজীবী</option>
-                                            <option value="others">অন্যান্য</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
-                                    </div>
-
-                                    {leadForm.profession === 'student' && (
-                                        <div className="space-y-4 animate-fade-in">
-                                            <div className="grid md:grid-cols-2 gap-4">
-                                                <input name="class_semester" value={leadForm.class_semester} onChange={handleLeadChange} placeholder="ক্লাস / সেমিস্টার" className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-base" />
-                                                <div className="relative">
-                                                    <select name="institution_type" value={leadForm.institution_type} onChange={handleLeadChange} className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none appearance-none text-slate-600 text-base cursor-pointer">
-                                                        <option value="" disabled>প্রতিষ্ঠানের ধরণ</option>
-                                                        <option value="Public">পাবলিক</option>
-                                                        <option value="Private">প্রাইভেট</option>
-                                                        <option value="National">জাতীয়</option>
-                                                    </select>
-                                                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
-                                                </div>
-                                            </div>
-                                            <input name="institution_name" value={leadForm.institution_name} onChange={handleLeadChange} placeholder="শিক্ষা প্রতিষ্ঠানের নাম" className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-base" />
-                                        </div>
-                                    )}
-
-                                    {leadForm.profession === 'job_holder' && (
-                                        <div className="grid md:grid-cols-2 gap-4 animate-fade-in">
-                                            <input name="company_name" value={leadForm.company_name} onChange={handleLeadChange} placeholder="কোম্পানির নাম" className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-base" />
-                                            <input name="designation" value={leadForm.designation} onChange={handleLeadChange} placeholder="আপনার পদবী" className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-base" />
-                                        </div>
-                                    )}
-
-                                    <div className="relative group">
-                                        <label className="block text-sm text-slate-500 mb-2">আপনার ছবি আপলোড করুন</label>
-                                        <input type="file" accept="image/*" onChange={(e) => setLeadImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" />
-                                    </div>
-
-                                    <textarea name="goal" required value={leadForm.goal} onChange={handleLeadChange} rows={2} className="w-full px-4 md:px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-base" placeholder="আপনার ফিউচার গোল / লক্ষ্য কী?"></textarea>
-
-                                    <button disabled={leadLoading} type="submit" className="w-full bg-gradient-to-r from-blue-600 to-violet-600 text-white font-bold py-3.5 md:py-4 rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2">
-                                        {leadLoading ? "প্রসেসিং..." : "সাবমিট করুন"}
-                                        {!leadLoading && <ArrowRight className="w-5 h-5" />}
-                                    </button>
-                                </form>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Testimonials - REORDERED: Now AFTER Contact */}
+             {/* Testimonials - REORDERED: Now AFTER Benefits */}
             <section id="testimonials" className="py-16 md:py-24 bg-slate-50 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
                 <div className="absolute -left-20 top-40 w-72 h-72 bg-blue-500/10 rounded-full blur-[80px]"></div>
@@ -751,7 +576,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                             <div className="space-y-4 md:space-y-6 mb-8 md:mb-10">
                                 <div className="flex items-start gap-4">
                                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0 border border-blue-500/30">
-                                        <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
+                                        <div className="font-bold text-blue-400 text-lg">৳</div>
                                     </div>
                                     <div>
                                         <h4 className="text-lg md:text-xl font-bold mb-1">প্যাসিভ ইনকাম</h4>
@@ -827,6 +652,128 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                 </button>
                             </form>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+             {/* Recent Jobs Section */}
+            <section className="py-20 md:py-32 bg-slate-50 relative overflow-hidden">
+                {/* Background Decorations */}
+                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent"></div>
+                <div className="absolute -left-40 top-20 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
+                
+                <div className="container mx-auto px-4 md:px-6 relative z-10">
+                    <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                        <div className="text-left max-w-2xl">
+                            <span className="text-blue-600 font-bold tracking-wider text-sm uppercase mb-2 block">Career Opportunities</span>
+                            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4 leading-tight">
+                                সাম্প্রতিক <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">চাকরি</span>
+                            </h2>
+                            <p className="text-slate-600 text-lg">সেরা কোম্পানিগুলোতে আপনার দক্ষতা অনুযায়ী পছন্দের চাকরিটি বেছে নিন এবং ক্যারিয়ার গড়ুন।</p>
+                        </div>
+                        <Link to="/jobs" className="group flex items-center gap-3 bg-white border border-slate-200 text-slate-700 font-bold px-6 py-3 rounded-full hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm hover:shadow-lg">
+                            সব চাকরি দেখুন <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform"/>
+                        </Link>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
+                        {recentJobs.length > 0 ? recentJobs.map((job) => (
+                            <div key={job.id} className="group bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-300 flex flex-col h-full relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-0 bg-blue-500 group-hover:h-full transition-all duration-300"></div>
+                                
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-2xl font-bold text-slate-700 group-hover:bg-blue-600 group-hover:text-white transition-colors shadow-inner">
+                                        {job.company.charAt(0)}
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${job.employmentStatus === 'Full-time' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+                                        {job.employmentStatus}
+                                    </span>
+                                </div>
+
+                                <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-1" title={job.title}>{job.title}</h3>
+                                <p className="text-slate-500 text-sm mb-6 font-medium">{job.company}</p>
+                                
+                                <div className="space-y-3 mb-6 flex-grow">
+                                    <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 p-2 rounded-lg">
+                                        <MapPin size={16} className="text-slate-400 shrink-0"/> <span className="truncate">{job.location}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-slate-500 bg-slate-50 p-2 rounded-lg">
+                                        <div className="font-bold text-slate-400">৳</div> <span className="truncate">{job.salary}</span>
+                                    </div>
+                                </div>
+
+                                <Link to="/jobs" className="w-full flex items-center justify-center gap-2 bg-slate-50 text-slate-700 font-bold py-3 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all mt-auto">
+                                    বিস্তারিত দেখুন <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform"/>
+                                </Link>
+                            </div>
+                        )) : (
+                            <div className="col-span-4 py-20 text-center">
+                                <div className="inline-block p-4 rounded-full bg-slate-100 mb-4 animate-pulse"><Briefcase className="text-slate-400" size={32} /></div>
+                                <p className="text-slate-500">আপডেট করা হচ্ছে...</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Latest Blog Section */}
+            <section className="py-20 md:py-32 bg-white relative">
+                <div className="container mx-auto px-4 md:px-6 relative z-10">
+                    <div className="text-center max-w-3xl mx-auto mb-16">
+                        <span className="text-purple-600 font-bold tracking-wider text-sm uppercase mb-2 block">Knowledge Hub</span>
+                        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4">
+                            আমাদের <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">ব্লগ</span>
+                        </h2>
+                        <p className="text-lg text-slate-600">ক্যারিয়ার টিপস, স্কিল ডেভেলপমেন্ট এবং টেকনোলজি বিশ্বের সবশেষ আপডেট নিয়ে আমাদের নিয়মিত আয়োজন।</p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {recentBlogs.length > 0 ? recentBlogs.map((blog) => (
+                            <div key={blog.id} className="group bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+                                <div className="relative h-64 overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity"></div>
+                                    <img src={blog.imageUrl} alt={blog.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                                    
+                                    <div className="absolute top-4 left-4 z-20">
+                                        <span className="bg-white/90 backdrop-blur-md text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
+                                            <Calendar size={12} className="text-purple-500"/> 
+                                            {blog.date ? new Date(blog.date.seconds * 1000).toLocaleDateString() : 'Recent'}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div className="p-8">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+                                            {blog.author.charAt(0)}
+                                        </div>
+                                        <span className="text-sm font-medium text-slate-500">{blog.author}</span>
+                                    </div>
+                                    
+                                    <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 leading-tight group-hover:text-purple-600 transition-colors">
+                                        {blog.title}
+                                    </h3>
+                                    <p className="text-slate-500 text-sm mb-6 line-clamp-3 leading-relaxed">
+                                        {blog.excerpt}
+                                    </p>
+                                    
+                                    <Link to="/blog" className="inline-flex items-center gap-2 text-slate-900 font-bold group-hover:text-purple-600 transition-colors relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-0.5 after:bg-purple-600 after:transition-all after:duration-300 group-hover:after:w-full">
+                                        পড়তে থাকুন <ArrowUpRight size={18} />
+                                    </Link>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="col-span-3 py-20 text-center">
+                                <div className="inline-block p-4 rounded-full bg-slate-50 mb-4 animate-pulse"><BookOpen className="text-slate-300" size={32} /></div>
+                                <p className="text-slate-400">আপডেট করা হচ্ছে...</p>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="text-center mt-12">
+                        <Link to="/blog" className="inline-block px-8 py-3 rounded-full bg-slate-100 text-slate-700 font-bold hover:bg-purple-600 hover:text-white transition-all shadow-sm">
+                            আরও ব্লগ দেখুন
+                        </Link>
                     </div>
                 </div>
             </section>

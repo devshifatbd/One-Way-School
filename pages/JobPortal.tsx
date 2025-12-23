@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Briefcase, DollarSign, Clock, Filter, CheckSquare, Square, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, MapPin, Briefcase, Clock, Filter, CheckSquare, Square, ChevronDown, ChevronUp } from 'lucide-react';
 import { Job, User } from '../types';
 import { saveLead, getJobs } from '../services/firebase';
 
@@ -11,7 +11,12 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // Filters State
     const [filterType, setFilterType] = useState<string[]>([]);
+    const [filterLocation, setFilterLocation] = useState<string[]>([]);
+    const [filterSalary, setFilterSalary] = useState<string[]>([]);
+    
     const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
     
     useEffect(() => {
@@ -23,6 +28,10 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
         fetchJobs();
     }, []);
 
+    // Extract unique values for filters
+    const uniqueLocations = Array.from(new Set(jobs.map(j => j.location).filter(Boolean)));
+    const uniqueSalaries = Array.from(new Set(jobs.map(j => j.salary).filter(Boolean)));
+
     const toggleFilter = (type: string) => {
         if (filterType.includes(type)) {
             setFilterType(filterType.filter(t => t !== type));
@@ -31,11 +40,31 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
         }
     };
 
+    const toggleLocation = (loc: string) => {
+        if (filterLocation.includes(loc)) {
+            setFilterLocation(filterLocation.filter(l => l !== loc));
+        } else {
+            setFilterLocation([...filterLocation, loc]);
+        }
+    };
+
+    const toggleSalary = (sal: string) => {
+        if (filterSalary.includes(sal)) {
+            setFilterSalary(filterSalary.filter(s => s !== sal));
+        } else {
+            setFilterSalary([...filterSalary, sal]);
+        }
+    };
+
     const filteredJobs = jobs.filter(job => {
         const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             job.company.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filterType.length === 0 || filterType.includes(job.employmentStatus);
-        return matchesSearch && matchesFilter;
+        
+        const matchesType = filterType.length === 0 || filterType.includes(job.employmentStatus);
+        const matchesLocation = filterLocation.length === 0 || filterLocation.includes(job.location);
+        const matchesSalary = filterSalary.length === 0 || filterSalary.includes(job.salary);
+
+        return matchesSearch && matchesType && matchesLocation && matchesSalary;
     });
 
     const handleApply = async (job: Job) => {
@@ -101,23 +130,62 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
                 
                 {/* Sidebar Filter */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24">
-                        <div className="flex items-center gap-2 font-bold text-slate-800 mb-4 border-b pb-2">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 sticky top-24 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                        <div className="flex items-center gap-2 font-bold text-slate-800 mb-6 border-b pb-4">
                             <Filter size={18} /> ফিল্টার
                         </div>
                         
-                        <div className="space-y-3">
-                            <h4 className="font-semibold text-sm text-slate-500">চাকরির ধরণ</h4>
-                            {['Full-time', 'Part-time', 'Internship', 'Contractual'].map(type => (
-                                <div key={type} className="flex items-center gap-2 cursor-pointer group" onClick={() => toggleFilter(type)}>
-                                    {filterType.includes(type) ? 
-                                        <CheckSquare size={18} className="text-blue-600" /> : 
-                                        <Square size={18} className="text-slate-300 group-hover:text-blue-400" />
-                                    }
-                                    <span className={`text-sm ${filterType.includes(type) ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>{type}</span>
-                                </div>
-                            ))}
+                        {/* Job Type Filter */}
+                        <div className="mb-6">
+                            <h4 className="font-bold text-sm text-slate-700 mb-3 uppercase tracking-wider">চাকরির ধরণ</h4>
+                            <div className="space-y-2">
+                                {['Full-time', 'Part-time', 'Internship', 'Contractual'].map(type => (
+                                    <div key={type} className="flex items-center gap-2 cursor-pointer group" onClick={() => toggleFilter(type)}>
+                                        {filterType.includes(type) ? 
+                                            <CheckSquare size={18} className="text-blue-600 shrink-0" /> : 
+                                            <Square size={18} className="text-slate-300 group-hover:text-blue-400 shrink-0" />
+                                        }
+                                        <span className={`text-sm ${filterType.includes(type) ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>{type}</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
+
+                        {/* Location Filter */}
+                        {uniqueLocations.length > 0 && (
+                            <div className="mb-6">
+                                <h4 className="font-bold text-sm text-slate-700 mb-3 uppercase tracking-wider">অবস্থান (Location)</h4>
+                                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                                    {uniqueLocations.map(loc => (
+                                        <div key={loc} className="flex items-center gap-2 cursor-pointer group" onClick={() => toggleLocation(loc)}>
+                                            {filterLocation.includes(loc) ? 
+                                                <CheckSquare size={18} className="text-blue-600 shrink-0" /> : 
+                                                <Square size={18} className="text-slate-300 group-hover:text-blue-400 shrink-0" />
+                                            }
+                                            <span className={`text-sm ${filterLocation.includes(loc) ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>{loc}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Salary Filter */}
+                        {uniqueSalaries.length > 0 && (
+                            <div>
+                                <h4 className="font-bold text-sm text-slate-700 mb-3 uppercase tracking-wider">বেতন (Salary)</h4>
+                                <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+                                    {uniqueSalaries.map(sal => (
+                                        <div key={sal} className="flex items-center gap-2 cursor-pointer group" onClick={() => toggleSalary(sal)}>
+                                            {filterSalary.includes(sal) ? 
+                                                <CheckSquare size={18} className="text-blue-600 shrink-0" /> : 
+                                                <Square size={18} className="text-slate-300 group-hover:text-blue-400 shrink-0" />
+                                            }
+                                            <span className={`text-sm ${filterSalary.includes(sal) ? 'text-blue-600 font-medium' : 'text-slate-600'}`}>{sal}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -137,7 +205,7 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
                                         <div className="text-slate-900 font-semibold text-base mb-2">{job.company}</div>
                                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
                                             <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-100"><MapPin size={14} /> {job.location}</span>
-                                            <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-100"><DollarSign size={14} /> {job.salary}</span>
+                                            <span className="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded border border-slate-100 font-bold"><span className="text-sm">৳</span> {job.salary}</span>
                                             <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 font-medium"><Briefcase size={14} /> {job.employmentStatus}</span>
                                         </div>
                                     </div>
@@ -218,6 +286,9 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
                                 <Search className="text-slate-400" size={32} />
                             </div>
                             <h3 className="text-slate-600 font-bold">দুঃখিত, কোনো তথ্য পাওয়া যায়নি</h3>
+                            <button onClick={() => { setSearchTerm(''); setFilterType([]); setFilterLocation([]); setFilterSalary([]); }} className="mt-4 text-blue-600 font-bold hover:underline">
+                                ফিল্টার রিসেট করুন
+                            </button>
                         </div>
                     )}
                 </div>

@@ -42,11 +42,24 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
         }
     };
 
+    const handleDashboardClick = () => {
+        if (isAdmin) {
+            navigate('/admin');
+        } else {
+            navigate('/dashboard');
+        }
+        setIsMenuOpen(false);
+    };
+
     const handleGoogleLogin = async () => {
         try {
-            await signInWithGoogle();
+            const loggedInUser = await signInWithGoogle();
             setIsLoginModalOpen(false);
-            navigate('/dashboard'); // Send to dashboard after login
+            if (loggedInUser.email && ADMIN_EMAILS.includes(loggedInUser.email)) {
+                navigate('/admin');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (e: any) { 
             console.error(e);
             setError(e.message || "Google Login Failed. Check console."); 
@@ -57,13 +70,20 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
         e.preventDefault();
         setError('');
         try {
+            let loggedInUser;
             if (authMode === 'login') {
-                await loginWithEmail(email, password);
+                loggedInUser = await loginWithEmail(email, password);
             } else {
-                await registerWithEmail(name, email, password);
+                loggedInUser = await registerWithEmail(name, email, password);
             }
+            
             setIsLoginModalOpen(false);
-            navigate('/dashboard'); // Send to dashboard after login
+            
+            if (loggedInUser.email && ADMIN_EMAILS.includes(loggedInUser.email)) {
+                navigate('/admin');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (e: any) {
             console.error(e);
             setError(e.message || "Authentication failed");
@@ -95,15 +115,10 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                         <div className="flex items-center gap-3">
                             {user ? (
                                 <div className="flex items-center gap-3">
-                                    {isAdmin && (
-                                        <Link to="/admin" className="hidden md:flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-slate-800 transition-colors">
-                                            <LayoutDashboard size={14} /> Admin
-                                        </Link>
-                                    )}
                                     
                                     {/* DASHBOARD TEXT BUTTON (Replaces Avatar) */}
                                     <button 
-                                        onClick={() => navigate('/dashboard')} 
+                                        onClick={handleDashboardClick} 
                                         className="flex items-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm"
                                     >
                                         <LayoutDashboard size={16} />
@@ -134,7 +149,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                         <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 p-6 flex flex-col space-y-3 max-w-6xl mx-auto">
                             {user && (
                                 <div 
-                                    onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }} 
+                                    onClick={handleDashboardClick} 
                                     className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl mb-2 cursor-pointer shadow-sm active:scale-95 transition-transform"
                                 >
                                     <div className="bg-white p-2 rounded-full text-blue-600 shadow-sm">
@@ -142,7 +157,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                                     </div>
                                     <div>
                                         <p className="font-bold text-slate-800 text-lg">ড্যাশবোর্ড</p>
-                                        <p className="text-xs text-slate-500">প্রোফাইল দেখুন</p>
+                                        <p className="text-xs text-slate-500">{isAdmin ? 'এডমিন প্যানেল' : 'প্রোফাইল দেখুন'}</p>
                                     </div>
                                 </div>
                             )}
@@ -152,11 +167,6 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                             <Link to="/community" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">কমিউনিটি</Link>
                             <Link to="/jobs" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">জবস</Link>
                             <Link to="/blog" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">ব্লগ</Link>
-                            {isAdmin && (
-                                <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-bold text-white bg-slate-900 p-3 rounded-xl flex items-center gap-2">
-                                    <LayoutDashboard size={18} /> এডমিন ড্যাশবোর্ড
-                                </Link>
-                            )}
                         </div>
                     </div>
                 )}

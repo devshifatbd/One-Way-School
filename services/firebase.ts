@@ -18,6 +18,7 @@ import {
     setDoc, 
     getDoc,
     deleteDoc,
+    updateDoc,
     doc, 
     serverTimestamp,
     getDocs,
@@ -182,6 +183,19 @@ export const addData = async (collectionName: string, data: any) => {
     }
 };
 
+export const updateData = async (collectionName: string, id: string, data: any) => {
+    try {
+        const docRef = doc(db, collectionName, id);
+        await updateDoc(docRef, {
+            ...data,
+            updatedAt: serverTimestamp()
+        });
+    } catch (error) {
+        console.error(`Error updating ${collectionName}`, error);
+        throw error;
+    }
+};
+
 export const getData = async (collectionName: string) => {
     try {
         const q = query(collection(db, collectionName), orderBy('createdAt', 'desc'));
@@ -222,15 +236,18 @@ export const getUsers = async () => {
 
 // Jobs
 export const saveJob = (data: any) => addData('jobs', data);
+export const updateJob = (id: string, data: any) => updateData('jobs', id, data);
 export const getJobs = () => getData('jobs');
 export const deleteJob = (id: string) => deleteData('jobs', id);
 
 // Blogs
 export const saveBlogPost = (data: any) => addData('blogs', data);
+export const updateBlogPost = (id: string, data: any) => updateData('blogs', id, data);
 export const getBlogPosts = () => getData('blogs');
 export const deleteBlogPost = (id: string) => deleteData('blogs', id);
 
 // Courses
 export const saveCourse = (data: any) => addData('courses', data);
+export const updateCourse = (id: string, data: any) => updateData('courses', id, data);
 export const getCourses = () => getData('courses');
 export const deleteCourse = (id: string) => deleteData('courses', id);

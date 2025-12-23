@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { TrendingUp, DollarSign, Award, Users } from 'lucide-react';
+import { TrendingUp, Award, Users } from 'lucide-react';
 import { User } from '../types';
-import { saveAffiliate, signInWithGoogle } from '../services/firebase';
+import { saveAffiliate } from '../services/firebase';
 
 interface CommunityProps {
     user: User | null;
@@ -115,7 +115,7 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                             <div className="space-y-4 md:space-y-6 mb-8 md:mb-10">
                                 <div className="flex items-start gap-4">
                                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-blue-500/20 flex items-center justify-center shrink-0 border border-blue-500/30">
-                                        <DollarSign className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
+                                        <span className="font-bold text-blue-400 text-xl">৳</span>
                                     </div>
                                     <div>
                                         <h4 className="text-lg md:text-xl font-bold mb-1">প্যাসিভ ইনকাম</h4>

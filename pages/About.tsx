@@ -30,7 +30,7 @@ const About: React.FC = () => {
                         <div>
                             <h2 className="text-3xl font-bold text-slate-900 mb-6">আমাদের গল্প</h2>
                             <p className="text-slate-600 text-lg leading-relaxed mb-6">
-                                One Way School (OWS) এর যাত্রা শুরু হয় ২০২৩ সালে, একটি স্বপ্ন নিয়ে—বাংলাদেশের শিক্ষাব্যবস্থা এবং প্রফেশনাল জগতের মধ্যে থাকা বিশাল শূন্যতা পূরণ করা। আমরা দেখেছি হাজারো গ্র্যাজুয়েট সার্টিফিকেট নিয়ে বের হচ্ছে, কিন্তু ইন্ডাস্ট্রির প্রয়োজনীয় দক্ষতা তাদের নেই।
+                                One Way School (OWS) এর যাত্রা শুরু হয় ২০২২ সালের ১২ জুন, একটি স্বপ্ন নিয়ে—বাংলাদেশের শিক্ষাব্যবস্থা এবং প্রফেশনাল জগতের মধ্যে থাকা বিশাল শূন্যতা পূরণ করা। আমরা দেখেছি হাজারো গ্র্যাজুয়েট সার্টিফিকেট নিয়ে বের হচ্ছে, কিন্তু ইন্ডাস্ট্রির প্রয়োজনীয় দক্ষতা তাদের নেই।
                             </p>
                             <p className="text-slate-600 text-lg leading-relaxed">
                                 সেই অভাব পূরণের লক্ষ্যেই আমরা তৈরি করেছি এমন একটি ইকোসিস্টেম, যেখানে একজন শিক্ষার্থী শুধুমাত্র শিখবে না, বরং হাতে-কলমে কাজ করে নিজেকে প্রফেশনাল হিসেবে গড়ে তুলবে।
@@ -39,12 +39,24 @@ const About: React.FC = () => {
                     </div>
                 </div>
             </section>
+            
+            {/* Founders Section - Details removed as per request */}
+            <section className="py-16 bg-slate-50">
+                <div className="container mx-auto px-4 max-w-6xl text-center">
+                    <h2 className="text-3xl font-bold text-slate-900 mb-4">আমাদের ফাউন্ডারগণ</h2>
+                    <p className="text-slate-600 max-w-2xl mx-auto mb-12">যাদের ভিশনারি নেতৃত্বের মাধ্যমে OWS এগিয়ে যাচ্ছে</p>
+                    
+                    <div className="flex justify-center items-center h-32 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <p className="text-slate-500 font-medium">ফাউন্ডারদের তথ্য শীঘ্রই আপডেট করা হবে...</p>
+                    </div>
+                </div>
+            </section>
 
             {/* Mission & Vision */}
-            <section className="py-16 bg-slate-50">
+            <section className="py-16 bg-white">
                 <div className="container mx-auto px-4 max-w-6xl">
                     <div className="grid md:grid-cols-2 gap-8">
-                        <div className="bg-white p-10 rounded-3xl shadow-sm hover:shadow-xl transition-shadow border border-slate-100 group">
+                        <div className="bg-slate-50 p-10 rounded-3xl shadow-sm hover:shadow-xl transition-shadow border border-slate-100 group">
                             <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                 <Target className="w-8 h-8 text-blue-600" />
                             </div>
@@ -53,7 +65,7 @@ const About: React.FC = () => {
                                 প্রতিটি শিক্ষার্থীকে তাদের সুপ্ত প্রতিভা বিকাশে সহায়তা করা এবং সঠিক মেন্টরশিপের মাধ্যমে তাদের ক্যারিয়ারের পথে আত্মবিশ্বাসী করে তোলা। আমরা চাই বেকারত্ব দূর করে দক্ষ জনশক্তি তৈরি করতে।
                             </p>
                         </div>
-                        <div className="bg-white p-10 rounded-3xl shadow-sm hover:shadow-xl transition-shadow border border-slate-100 group">
+                        <div className="bg-slate-50 p-10 rounded-3xl shadow-sm hover:shadow-xl transition-shadow border border-slate-100 group">
                             <div className="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                 <Globe className="w-8 h-8 text-purple-600" />
                             </div>
@@ -85,36 +97,6 @@ const About: React.FC = () => {
                         <div>
                             <div className="text-4xl md:text-5xl font-bold mb-2">৯৫%</div>
                             <div className="text-blue-200">সাফল্যের হার</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Why Choose Us */}
-            <section className="py-20 bg-white">
-                <div className="container mx-auto px-4 max-w-6xl text-center">
-                    <h2 className="text-3xl font-bold text-slate-900 mb-12">কেন আমরা আলাদা?</h2>
-                    <div className="grid md:grid-cols-3 gap-8">
-                        <div className="p-6">
-                            <div className="w-16 h-16 mx-auto bg-green-50 rounded-full flex items-center justify-center mb-4">
-                                <Briefcase className="w-8 h-8 text-green-600" />
-                            </div>
-                            <h3 className="text-xl font-bold mb-3">বাস্তবমুখী শিক্ষা</h3>
-                            <p className="text-slate-500">আমরা থিওরির চেয়ে প্র্যাক্টিক্যাল প্রজেক্টে বেশি জোর দিই।</p>
-                        </div>
-                        <div className="p-6">
-                            <div className="w-16 h-16 mx-auto bg-orange-50 rounded-full flex items-center justify-center mb-4">
-                                <Users className="w-8 h-8 text-orange-600" />
-                            </div>
-                            <h3 className="text-xl font-bold mb-3">শক্তিশালী নেটওয়ার্ক</h3>
-                            <p className="text-slate-500">আমাদের কমিউনিটিতে যুক্ত হয়ে আপনি পাবেন ইন্ডাস্ট্রি এক্সপার্টদের সান্নিধ্য।</p>
-                        </div>
-                        <div className="p-6">
-                            <div className="w-16 h-16 mx-auto bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                                <Award className="w-8 h-8 text-blue-600" />
-                            </div>
-                            <h3 className="text-xl font-bold mb-3">লাইফটাইম সাপোর্ট</h3>
-                            <p className="text-slate-500">কোর্স শেষ হলেও আমাদের সম্পর্ক শেষ হয় না। আমরা সবসময় পাশে আছি।</p>
                         </div>
                     </div>
                 </div>

@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { 
-    getLeads, getAffiliates, getUsers, getJobs, saveJob, deleteJob, 
-    getBlogPosts, saveBlogPost, deleteBlogPost, getCourses, saveCourse, deleteCourse, 
+    getLeads, getAffiliates, getUsers, getJobs, saveJob, updateJob, deleteJob, 
+    getBlogPosts, saveBlogPost, updateBlogPost, deleteBlogPost, 
+    getCourses, saveCourse, updateCourse, deleteCourse, 
     signInWithGoogle, loginWithEmail, logout 
 } from '../services/firebase';
 import { User, Lead, Affiliate, Job, BlogPost, Course } from '../types';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
     Users, LayoutDashboard, Share2, Lock, Briefcase, BookOpen, 
-    GraduationCap, Plus, Trash2, X, ChevronRight, Menu, ChevronLeft, LogOut, Search, Globe, Chrome
+    GraduationCap, Plus, Trash2, X, ChevronRight, Menu, ChevronLeft, LogOut, Search, Globe, Chrome, Link as LinkIcon, Edit
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -46,6 +47,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'job' | 'blog' | 'course' | null>(null);
     const [formLoading, setFormLoading] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     // Initial States
     const initialJobState: Job = {
@@ -140,33 +142,81 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         return clean;
     };
 
-    // --- SAVE HANDLERS ---
-    const handleAddJob = async (e: React.FormEvent) => {
+    // --- OPEN MODAL HANDLERS ---
+    const openNewJobModal = () => {
+        setEditingId(null);
+        setNewJob(initialJobState);
+        setModalType('job');
+        setIsModalOpen(true);
+    };
+
+    const openEditJobModal = (job: Job) => {
+        setEditingId(job.id || null);
+        setNewJob(job);
+        setModalType('job');
+        setIsModalOpen(true);
+    };
+
+    const openNewBlogModal = () => {
+        setEditingId(null);
+        setNewBlog({ title: '', excerpt: '', author: 'Admin', imageUrl: '', content: '' });
+        setModalType('blog');
+        setIsModalOpen(true);
+    };
+
+    const openEditBlogModal = (blog: BlogPost) => {
+        setEditingId(blog.id || null);
+        setNewBlog(blog);
+        setModalType('blog');
+        setIsModalOpen(true);
+    };
+
+    const openNewCourseModal = () => {
+        setEditingId(null);
+        setNewCourse({ title: '', instructor: '', price: '', duration: '', imageUrl: '', category: '' });
+        setModalType('course');
+        setIsModalOpen(true);
+    };
+
+    const openEditCourseModal = (course: Course) => {
+        setEditingId(course.id || null);
+        setNewCourse(course);
+        setModalType('course');
+        setIsModalOpen(true);
+    };
+
+    // --- SAVE/UPDATE HANDLERS ---
+    const handleSaveJob = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
         setFormLoading(true);
         
         try {
-            // Force attach auth info outside sanitize to ensure it's never stripped
             const jobData = {
                 ...sanitizeData(newJob),
                 userId: user.uid,
                 userEmail: user.email || '' 
             };
             
-            await saveJob(jobData);
+            if (editingId) {
+                await updateJob(editingId, jobData);
+                alert("চাকরি আপডেট করা হয়েছে!");
+            } else {
+                await saveJob(jobData);
+                alert("চাকরি সফলভাবে পোস্ট করা হয়েছে!");
+            }
+            
             setNewJob(initialJobState);
             setIsModalOpen(false);
             await fetchData();
-            alert("চাকরি সফলভাবে পোস্ট করা হয়েছে!");
         } catch (error: any) {
-            console.error("Error saving job:", error);
-            alert(`চাকরি সেভ করা যায়নি।\nএরর: ${error.message}\n\nঅনুগ্রহ করে ফায়ারবেজ কনসোলে রুলস চেক করুন।`);
+            console.error("Error saving/updating job:", error);
+            alert(`সমস্যা হয়েছে।\nএরর: ${error.message}`);
         }
         setFormLoading(false);
     };
 
-    const handleAddBlog = async (e: React.FormEvent) => {
+    const handleSaveBlog = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
         setFormLoading(true);
@@ -177,19 +227,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                 userEmail: user.email || ''
             };
             
-            await saveBlogPost(blogData);
+            if (editingId) {
+                await updateBlogPost(editingId, blogData);
+                alert("ব্লগ আপডেট করা হয়েছে!");
+            } else {
+                await saveBlogPost(blogData);
+                alert("ব্লগ সফলভাবে পোস্ট করা হয়েছে!");
+            }
+
             setNewBlog({ title: '', excerpt: '', author: 'Admin', imageUrl: '', content: '' });
             setIsModalOpen(false);
             await fetchData();
-            alert("ব্লগ সফলভাবে পোস্ট করা হয়েছে!");
         } catch (error: any) {
-            console.error("Error saving blog:", error);
-            alert(`ব্লগ সেভ করা যায়নি।\nএরর: ${error.message}`);
+            console.error("Error saving/updating blog:", error);
+            alert(`সমস্যা হয়েছে।\nএরর: ${error.message}`);
         }
         setFormLoading(false);
     };
 
-    const handleAddCourse = async (e: React.FormEvent) => {
+    const handleSaveCourse = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) return;
         setFormLoading(true);
@@ -200,14 +256,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                 userEmail: user.email || ''
             };
             
-            await saveCourse(courseData);
+            if (editingId) {
+                await updateCourse(editingId, courseData);
+                alert("কোর্স আপডেট করা হয়েছে!");
+            } else {
+                await saveCourse(courseData);
+                alert("কোর্স সফলভাবে যুক্ত করা হয়েছে!");
+            }
+
             setNewCourse({ title: '', instructor: '', price: '', duration: '', imageUrl: '', category: '' });
             setIsModalOpen(false);
             await fetchData();
-            alert("কোর্স সফলভাবে যুক্ত করা হয়েছে!");
         } catch (error: any) {
-            console.error("Error saving course:", error);
-            alert(`কোর্স সেভ করা যায়নি।\nএরর: ${error.message}`);
+            console.error("Error saving/updating course:", error);
+            alert(`সমস্যা হয়েছে।\nএরর: ${error.message}`);
         }
         setFormLoading(false);
     };
@@ -424,7 +486,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                                     <h2 className="text-lg font-bold text-slate-800">All Jobs</h2>
-                                    <button onClick={() => { setModalType('job'); setIsModalOpen(true); }} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all">
+                                    <button onClick={openNewJobModal} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all">
                                         <Plus size={18}/> New Job
                                     </button>
                                 </div>
@@ -441,7 +503,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                                     <span>Deadline: {job.deadline}</span>
                                                 </div>
                                             </div>
-                                            <button onClick={() => handleDelete('job', job.id)} className="self-end md:self-center p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={20}/></button>
+                                            <div className="flex gap-2 self-end md:self-center">
+                                                <button onClick={() => openEditJobModal(job)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Edit">
+                                                    <Edit size={20}/>
+                                                </button>
+                                                <button onClick={() => handleDelete('job', job.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Delete">
+                                                    <Trash2 size={20}/>
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                     {jobs.length === 0 && <div className="p-12 text-center text-slate-400">No jobs found.</div>}
@@ -454,7 +523,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                                     <h2 className="text-lg font-bold text-slate-800">All Blogs</h2>
-                                    <button onClick={() => { setModalType('blog'); setIsModalOpen(true); }} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all">
+                                    <button onClick={openNewBlogModal} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all">
                                         <Plus size={18}/> Write Blog
                                     </button>
                                 </div>
@@ -467,7 +536,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                                 <p className="text-sm text-slate-500 line-clamp-1 mt-1">{blog.excerpt}</p>
                                                 <p className="text-xs text-slate-400 mt-1">By {blog.author}</p>
                                             </div>
-                                            <button onClick={() => handleDelete('blog', blog.id)} className="self-center text-slate-400 hover:text-red-600 p-2"><Trash2 size={18}/></button>
+                                            <div className="flex flex-col gap-2 self-center">
+                                                <button onClick={() => openEditBlogModal(blog)} className="text-slate-400 hover:text-blue-600 p-2" title="Edit">
+                                                    <Edit size={18}/>
+                                                </button>
+                                                <button onClick={() => handleDelete('blog', blog.id)} className="text-slate-400 hover:text-red-600 p-2" title="Delete">
+                                                    <Trash2 size={18}/>
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -479,7 +555,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                                     <h2 className="text-lg font-bold text-slate-800">Courses</h2>
-                                    <button onClick={() => { setModalType('course'); setIsModalOpen(true); }} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all">
+                                    <button onClick={openNewCourseModal} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-800 shadow-lg shadow-slate-900/20 transition-all">
                                         <Plus size={18}/> Add Course
                                     </button>
                                 </div>
@@ -492,7 +568,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                                 <div className="text-sm text-slate-500 mt-1">{course.instructor}</div>
                                                 <div className="text-sm font-bold text-blue-600 mt-1">{course.price}</div>
                                             </div>
-                                            <button onClick={() => handleDelete('course', course.id)} className="self-start text-slate-400 hover:text-red-600 p-2"><Trash2 size={18}/></button>
+                                            <div className="flex flex-col gap-2 self-start">
+                                                <button onClick={() => openEditCourseModal(course)} className="text-slate-400 hover:text-blue-600 p-2" title="Edit">
+                                                    <Edit size={18}/>
+                                                </button>
+                                                <button onClick={() => handleDelete('course', course.id)} className="text-slate-400 hover:text-red-600 p-2" title="Delete">
+                                                    <Trash2 size={18}/>
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -573,16 +656,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                     <div className="bg-white rounded-2xl w-full max-w-3xl my-8 relative shadow-2xl flex flex-col max-h-[90vh]">
                         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
                             <h3 className="text-xl font-bold text-slate-800">
-                                {modalType === 'job' && 'Post New Job'}
-                                {modalType === 'blog' && 'Write New Blog'}
-                                {modalType === 'course' && 'Add New Course'}
+                                {modalType === 'job' && (editingId ? 'Edit Job' : 'Post New Job')}
+                                {modalType === 'blog' && (editingId ? 'Edit Blog' : 'Write New Blog')}
+                                {modalType === 'course' && (editingId ? 'Edit Course' : 'Add New Course')}
                             </h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={24}/></button>
                         </div>
                         
                         <div className="p-6 overflow-y-auto custom-scrollbar">
                             {modalType === 'job' && (
-                                <form onSubmit={handleAddJob} className="space-y-6">
+                                <form onSubmit={handleSaveJob} className="space-y-6">
                                     <div className="grid md:grid-cols-2 gap-5">
                                         <div className="col-span-2">
                                             <label className="block text-sm font-bold text-slate-700 mb-1">Job Title *</label>
@@ -660,18 +743,69 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
 
                                     <div className="pt-4 border-t border-slate-100">
                                         <button disabled={formLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-slate-800 transition-all text-lg shadow-lg">
-                                            {formLoading ? 'Publishing...' : 'Publish Job'}
+                                            {formLoading ? (editingId ? 'Updating...' : 'Publishing...') : (editingId ? 'Update Job' : 'Publish Job')}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {modalType === 'blog' && (
+                                <form onSubmit={handleSaveBlog} className="space-y-5">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Blog Title *</label>
+                                        <input required value={newBlog.title} onChange={e => setNewBlog({...newBlog, title: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Enter blog title"/>
+                                    </div>
+                                    
+                                    <div className="grid md:grid-cols-2 gap-5">
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Author Name *</label>
+                                            <input required value={newBlog.author} onChange={e => setNewBlog({...newBlog, author: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Author name"/>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-slate-700 mb-1">Cover Image URL *</label>
+                                            <div className="relative">
+                                                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                                                <input 
+                                                    type="text" 
+                                                    required 
+                                                    value={newBlog.imageUrl} 
+                                                    onChange={e => setNewBlog({...newBlog, imageUrl: e.target.value})} 
+                                                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" 
+                                                    placeholder="https://example.com/image.jpg" 
+                                                />
+                                            </div>
+                                            {newBlog.imageUrl && (
+                                                <div className="mt-2 relative h-20 w-full overflow-hidden rounded-lg border border-slate-200">
+                                                    <img src={newBlog.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Short Excerpt *</label>
+                                        <textarea required rows={3} value={newBlog.excerpt} onChange={e => setNewBlog({...newBlog, excerpt: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Brief summary of the blog..."></textarea>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 mb-1">Full Content *</label>
+                                        <textarea required rows={10} value={newBlog.content} onChange={e => setNewBlog({...newBlog, content: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono text-sm" placeholder="Write your blog content here..."></textarea>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-slate-100">
+                                        <button disabled={formLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl hover:bg-slate-800 transition-all text-lg shadow-lg">
+                                            {formLoading ? (editingId ? 'Updating...' : 'Publishing...') : (editingId ? 'Update Blog' : 'Publish Blog')}
                                         </button>
                                     </div>
                                 </form>
                             )}
 
                              {modalType === 'course' && (
-                                <form onSubmit={handleAddCourse} className="space-y-4">
+                                <form onSubmit={handleSaveCourse} className="space-y-4">
                                     <input required placeholder="Course Title" value={newCourse.title} onChange={e => setNewCourse({...newCourse, title: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                                     <div className="grid grid-cols-2 gap-4">
                                         <input required placeholder="Instructor" value={newCourse.instructor} onChange={e => setNewCourse({...newCourse, instructor: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-                                        <input required placeholder="Price" value={newCourse.price} onChange={e => setNewCourse({...newCourse, price: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                        <input required placeholder="Price (e.g. 5000 BDT)" value={newCourse.price} onChange={e => setNewCourse({...newCourse, price: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <input required placeholder="Duration" value={newCourse.duration} onChange={e => setNewCourse({...newCourse, duration: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
@@ -688,7 +822,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                     </div>
 
                                     <button disabled={formLoading} type="submit" className="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl hover:bg-slate-800 transition-all">
-                                        {formLoading ? 'Saving...' : 'Add Course'}
+                                        {formLoading ? 'Saving...' : (editingId ? 'Update Course' : 'Add Course')}
                                     </button>
                                 </form>
                             )}
