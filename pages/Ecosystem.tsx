@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle, Briefcase, Users, MessageCircle, Heart, Star, Lock, Chrome, Target, Gift, FileText, Check, ChevronDown, X, Zap, Brain, TrendingUp, ShieldCheck, AlertTriangle, SearchX, TrendingDown, AlertCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle, Briefcase, Users, MessageCircle, Heart, Star, Lock, Chrome, Target, Gift, FileText, Check, ChevronDown, X, Zap, Brain, TrendingUp, ShieldCheck, AlertTriangle, SearchX, TrendingDown, AlertCircle, User as UserIcon } from 'lucide-react';
 import { saveEcosystemApplication, signInWithGoogle } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
@@ -211,37 +211,46 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
 
                     {/* Case Studies: The Problem */}
                     <div className="grid lg:grid-cols-2 gap-10 max-w-6xl mx-auto items-center">
-                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8 md:p-10 rounded-3xl shadow-2xl relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-40 h-40 bg-red-600/20 rounded-full blur-3xl group-hover:bg-red-600/30 transition-colors"></div>
+                        {/* Realistic Case Study - Updated */}
+                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8 md:p-10 rounded-3xl shadow-2xl relative overflow-hidden group border border-slate-700">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl group-hover:bg-red-600/20 transition-colors pointer-events-none"></div>
                             
-                            <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                                <span className="bg-red-600 text-white text-xs px-2 py-1 rounded">CASE STUDY 1</span>
-                                ভালো রেজাল্ট, তবুও বেকার?
-                            </h3>
-                            
-                            <div className="space-y-4 mb-6 relative z-10">
-                                <div className="flex gap-4">
-                                    <div className="w-2 h-2 mt-2.5 rounded-full bg-red-500 shrink-0"></div>
-                                    <p className="text-slate-300 text-sm leading-relaxed">
-                                        <strong className="text-white">রফিক (ছদ্মনাম)</strong>, দেশের একটি টপ প্রাইভেট ভার্সিটি থেকে সিজিপিএ ৩.৮০ নিয়ে বিবিএ শেষ করেছেন। গত ৬ মাসে ৫০টিরও বেশি চাকরিতে আবেদন করেছেন, ১০টি ইন্টারভিউ দিয়েছেন।
-                                    </p>
+                            <div className="relative z-10">
+                                <div className="flex justify-between items-start mb-6">
+                                    <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">REAL STORY</span>
+                                    <span className="text-slate-400 text-xs">ঢাকা, বাংলাদেশ</span>
                                 </div>
-                                <div className="flex gap-4">
-                                    <div className="w-2 h-2 mt-2.5 rounded-full bg-red-500 shrink-0"></div>
-                                    <p className="text-slate-300 text-sm leading-relaxed">
-                                        <strong className="text-white">ফলাফল:</strong> একটিও চাকরি হয়নি। কেন?
-                                    </p>
-                                </div>
-                            </div>
 
-                            <div className="bg-white/10 p-4 rounded-xl border border-white/10 backdrop-blur-sm">
-                                <h4 className="font-bold text-red-400 mb-2 text-sm uppercase tracking-wide">মিসিং ফ্যাক্টর (Missing Factors):</h4>
-                                <ul className="grid grid-cols-2 gap-2 text-sm text-slate-300">
-                                    <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> কমিউনিকেশন স্কিল নেই</li>
-                                    <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> সিভি অপ্টিমাইজড না</li>
-                                    <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> নিজেকে সেল করতে পারেন না</li>
-                                    <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> নেটওয়ার্কিং জিরো</li>
-                                </ul>
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center border-2 border-red-500/50">
+                                        <UserIcon size={32} className="text-slate-400"/>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-white">আসিফ ইকবাল</h3>
+                                        <p className="text-slate-400 text-sm">B.Sc in CSE (CGPA 3.85)</p>
+                                        <p className="text-red-400 text-xs font-bold mt-1">৮ মাস ধরে বেকার</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-4 mb-6 bg-white/5 p-4 rounded-xl border border-white/10">
+                                    <div className="flex gap-3">
+                                        <div className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0"></div>
+                                        <p className="text-slate-300 text-sm leading-relaxed italic">
+                                            "আমি ভেবেছিলাম ভালো সিজিপিএ থাকলেই চাকরি নিশ্চিত। গত ৮ মাসে <strong className="text-white">১২০+ কোম্পানিতে সিভি ড্রপ করেছি</strong>। মাত্র ৫টি জায়গা থেকে ডাক পেয়েছি, কিন্তু ভাইবা বোর্ডে নার্ভাসনেসের কারণে বাদ পড়েছি।"
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+                                    <h4 className="font-bold text-red-400 mb-3 text-sm uppercase tracking-wide flex items-center gap-2">
+                                        <AlertTriangle size={16}/> কেন চাকরি হচ্ছে না?
+                                    </h4>
+                                    <ul className="grid grid-cols-1 gap-2 text-sm text-slate-300">
+                                        <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> টেকনিক্যাল স্কিল আছে, কিন্তু <span className="text-white font-bold">কমিউনিকেশন</span> জিরো।</li>
+                                        <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> সিভি দেখতে প্রফেশনাল না (ATS Friendly না)।</li>
+                                        <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> লিংকডইন প্রোফাইল অপ্টিমাইজড না।</li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
 

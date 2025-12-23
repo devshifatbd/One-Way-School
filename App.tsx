@@ -73,10 +73,10 @@ const App: React.FC = () => {
                     <Route path="/community" element={<Community user={user} />} />
                     <Route path="/jobs" element={<JobPortal user={user} />} />
                     <Route path="/blog" element={<Blog />} />
-                    <Route path="/dashboard" element={<UserDashboard user={user} />} />
                 </Route>
 
-                {/* Admin Route without Public Navbar/Footer */}
+                {/* Dashboard Routes (No Navbar/Footer) */}
+                <Route path="/dashboard" element={<UserDashboard user={user} />} />
                 <Route path="/admin" element={<AdminDashboard user={user} />} />
             </Routes>
         </HashRouter>

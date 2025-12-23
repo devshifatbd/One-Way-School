@@ -47,7 +47,9 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
         let phoneInput = searchPhone.replace(/[^0-9]/g, ''); 
         
         // Handle +880 or 880 prefix
-        if (phoneInput.startsWith('880')) phoneInput = phoneInput.substring(2);
+        if (phoneInput.startsWith('880')) phoneInput = phoneInput.substring(3); // Remove 880
+        if (phoneInput.startsWith('0')) phoneInput = phoneInput; // Keep 017...
+        else phoneInput = '0' + phoneInput; // Ensure it starts with 0
         
         // Basic length validation
         if(phoneInput.length < 10) {
@@ -61,9 +63,13 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
 
         try {
             // AUTO-LOGIN: If user is not logged in, sign them in anonymously
-            // This satisfies Firebase rules (request.auth != null) without user interaction
+            // This satisfies Firebase rules (if rules allow read for auth users)
             if (!auth.currentUser) {
-                await loginAnonymously();
+                try {
+                    await loginAnonymously();
+                } catch (loginError) {
+                    console.warn("Anonymous login failed, proceeding anyway...", loginError);
+                }
             }
 
             const member = await getCommunityMemberByPhone(phoneInput);
@@ -76,7 +82,7 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
         } catch(e: any) {
             console.error("Verification Error:", e);
             if (e.code === 'permission-denied' || e.message?.includes('permission')) {
-                setVerifyError("ডাটাবেস এক্সেস সমস্যা। অনুগ্রহ করে পেইজটি রিফ্রেশ দিয়ে আবার চেষ্টা করুন।");
+                setVerifyError("ডাটাবেস এক্সেস সমস্যা। অনুগ্রহ করে পেইজটি রিফ্রেশ দিয়ে আবার চেষ্টা করুন। (Firestore Rules Check Required)");
             } else {
                 setVerifyError("যাচাইকরণে সমস্যা হয়েছে। ইন্টারনেট কানেকশন চেক করুন।");
             }
@@ -283,8 +289,8 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                              <img src="https://iili.io/f3k62rG.md.png" className="w-[600px] h-auto opacity-[0.06] grayscale blur-[0.5px]" alt="Watermark" />
                         </div>
 
-                        {/* --- Header Section (Top Space Reduced) --- */}
-                        <div className="relative z-20 w-full flex flex-col items-center pt-6 px-20 text-center">
+                        {/* --- Header Section (Top Space Increased for Logo Safety) --- */}
+                        <div className="relative z-20 w-full flex flex-col items-center pt-16 px-20 text-center">
                             <img src="https://iili.io/f3k62rG.md.png" alt="Logo" className="h-24 object-contain mb-2" />
 
                             <h1 className="text-6xl font-serif font-bold text-[#1e3a8a] tracking-wide mb-2 uppercase" style={{ fontFamily: 'Playfair Display, serif' }}>
@@ -329,22 +335,22 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                             </div>
                         </div>
 
-                        {/* --- Footer / Signatures (Increased Bottom Space) --- */}
+                        {/* --- Footer / Signatures (Fixed Spacing to prevent overlap) --- */}
                         <div className="relative z-20 w-full px-28 pb-24 flex justify-between items-end">
                             <div className="flex flex-col items-center w-64">
-                                <img src="https://iili.io/KB8jgte.md.png" alt="Sig" className="h-16 object-contain mb-[-12px] z-10 filter grayscale brightness-50" />
+                                <img src="https://iili.io/KB8jgte.md.png" alt="Sig" className="h-16 object-contain mb-4 z-10 filter grayscale brightness-50" />
                                 <div className="w-full h-[2px] bg-slate-300 mb-2"></div>
                                 <p className="font-bold text-slate-800 text-lg">Sifatur Rahman</p>
                                 <p className="text-sm text-slate-500 uppercase tracking-wider">Founder</p>
                             </div>
                             <div className="flex flex-col items-center w-64">
-                                <img src="https://iili.io/KB8j4ou.md.png" alt="Sig" className="h-16 object-contain mb-[-12px] z-10 filter grayscale brightness-50" />
+                                <img src="https://iili.io/KB8j4ou.md.png" alt="Sig" className="h-16 object-contain mb-4 z-10 filter grayscale brightness-50" />
                                 <div className="w-full h-[2px] bg-slate-300 mb-2"></div>
                                 <p className="font-bold text-slate-800 text-lg">Faria Hoque</p>
                                 <p className="text-sm text-slate-500 uppercase tracking-wider">Co-Founder</p>
                             </div>
                             <div className="flex flex-col items-center w-64">
-                                <img src="https://iili.io/KTuZeGp.png" alt="Sig" className="h-16 object-contain mb-[-12px] z-10 filter grayscale brightness-50" />
+                                <img src="https://iili.io/KTuZeGp.png" alt="Sig" className="h-16 object-contain mb-4 z-10 filter grayscale brightness-50" />
                                 <div className="w-full h-[2px] bg-slate-300 mb-2"></div>
                                 <p className="font-bold text-slate-800 text-lg">Dipta Halder</p>
                                 <p className="text-sm text-slate-500 uppercase tracking-wider">Co-Founder</p>

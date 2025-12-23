@@ -205,7 +205,7 @@ export const loginAnonymously = async () => {
         const result = await signInAnonymously(auth);
         return result.user;
     } catch (error) {
-        console.warn("Anonymous Login Error - ignoring as it might be disabled in console", error);
+        console.warn("Anonymous Login Error:", error);
         return null;
     }
 };
@@ -303,22 +303,10 @@ export const updateEcosystemStudent = (id: string, data: any) => updateData('eco
 // Instructor Management
 export const createInstructor = async (instructorData: any, pass: string) => {
     try {
-        // NOTE: In a real app, you can't create another user while logged in without Admin SDK.
-        // As a workaround for this frontend-only demo, we will create a 'users' document manually 
-        // and assume the user will be created in Auth later or separately.
-        // OR we can't create the Auth user here. 
-        // We will just save to a 'instructors' collection for listing.
-        
         await addDoc(collection(db, 'instructors'), {
             ...instructorData,
             createdAt: serverTimestamp()
         });
-        
-        // Also add to 'users' collection so if they DO sign up/log in, they have the role
-        // We can't know the UID yet if we don't create the Auth user. 
-        // This part implies we need the Admin to manually create the Auth user or use a separate admin tool.
-        // For this demo, we just store the intention.
-        
     } catch (e) {
         throw e;
     }
@@ -332,42 +320,45 @@ export const saveCommunityMember = (data: any) => addData('community_members', d
 export const getCommunityMembers = () => getData('community_members');
 
 export const getCommunityMemberByPhone = async (phone: string) => {
-    let foundMember = null;
-    
-    // 1. Try 'community_members' collection first (Admin Added)
-    try {
-        const q = query(collection(db, 'community_members'), where('phone', '==', phone));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-            foundMember = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
-        }
-    } catch(e) { 
-        console.warn("Community DB read failed (Permission/Network), trying fallback...", e);
-    }
+    const variations = [
+        phone,
+        `+88${phone}`,
+        `88${phone}`,
+        phone.startsWith('0') ? phone.substring(1) : phone
+    ];
+    const uniquePhones = [...new Set(variations)];
 
+    const searchCollection = async (colName: string, extraConstraints: any[] = []) => {
+        for (const p of uniquePhones) {
+            try {
+                const q = query(collection(db, colName), where('phone', '==', p), ...extraConstraints);
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    const docData = snapshot.docs[0].data();
+                    return { id: snapshot.docs[0].id, ...docData };
+                }
+            } catch (e) {
+                // Ignore errors
+            }
+        }
+        return null;
+    };
+
+    let foundMember = await searchCollection('community_members');
     if (foundMember) return foundMember;
 
-    // 2. Fallback: Try 'affiliates' collection (User Registered)
-    // Users usually have permission to read 'affiliates' (especially their own)
-    try {
-        const q2 = query(collection(db, 'affiliates'), where('phone', '==', phone), where('status', '==', 'approved'));
-        const snap2 = await getDocs(q2);
-        
-        if (!snap2.empty) {
-            const data = snap2.docs[0].data();
-            return {
-                id: snap2.docs[0].id,
-                name: data.name,
-                phone: data.phone,
-                email: data.email,
-                // Map affiliate types to community roles
-                role: data.type === 'Campus Ambassador' ? 'Campus Ambassador' : 'Community Member',
-                category: data.type === 'Campus Ambassador' ? 'Campus Ambassador' : 'Affiliate',
-                createdAt: data.createdAt
-            };
-        }
-    } catch (e) {
-        console.error("Fallback search failed", e);
+    const affiliateMember = await searchCollection('affiliates', [where('status', '==', 'approved')]);
+    
+    if (affiliateMember) {
+        return {
+            id: affiliateMember.id,
+            name: affiliateMember.name,
+            phone: affiliateMember.phone,
+            email: affiliateMember.email,
+            role: affiliateMember.type === 'Campus Ambassador' ? 'Campus Ambassador' : 'Community Member',
+            category: affiliateMember.type === 'Campus Ambassador' ? 'Campus Ambassador' : 'Affiliate',
+            createdAt: affiliateMember.createdAt
+        };
     }
 
     return null;
@@ -388,14 +379,24 @@ export const bulkSaveCommunityMembers = async (members: any[]) => {
 
 export const getUsers = async () => {
     try {
+        // Try with sorting first (Requires Index)
         const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (e) {
-        console.warn("Could not fetch users list", e);
-        return [];
+        // Fallback: Fetch all without sorting if index is missing
+        console.warn("Fetching users without sort (Index missing likely)", e);
+        try {
+            const snapshot = await getDocs(collection(db, 'users'));
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (err) {
+            console.error("Critical: Could not fetch users", err);
+            return [];
+        }
     }
 };
+
+export const deleteUserDoc = (id: string) => deleteData('users', id);
 
 // Jobs
 export const saveJob = (data: any) => addData('jobs', data);
