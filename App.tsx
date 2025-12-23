@@ -65,7 +65,9 @@ const App: React.FC = () => {
             <Routes>
                 {/* Public Routes with Navbar & Footer */}
                 <Route element={<PublicLayout user={user} />}>
+                    {/* Explicitly setting Home as the main page at root "/" */}
                     <Route path="/" element={<Home user={user} />} />
+                    
                     <Route path="/about" element={<About />} />
                     <Route path="/ecosystem" element={<Ecosystem />} />
                     <Route path="/community" element={<Community user={user} />} />

@@ -28,18 +28,9 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
 
     const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-    const scrollToSection = (id: string) => {
+    const scrollToTop = () => {
         setIsMenuOpen(false);
-        if (location.pathname !== '/') {
-            navigate('/');
-            setTimeout(() => {
-                const element = document.getElementById(id);
-                if (element) element.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-        } else {
-            if (id === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
-            else document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleDashboardClick = () => {
@@ -97,13 +88,13 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                     <div className="nav-pill rounded-full px-4 py-2 md:px-6 md:py-3 flex justify-between items-center max-w-6xl mx-auto">
                         
                         {/* Logo */}
-                        <div onClick={() => scrollToSection('home')} className="cursor-pointer flex items-center gap-2 pl-2">
+                        <Link to="/" onClick={scrollToTop} className="cursor-pointer flex items-center gap-2 pl-2">
                             <img src="https://iili.io/f3k62rG.md.png" alt="OWS Logo" className="h-8 md:h-10 object-contain drop-shadow-sm hover:scale-105 transition-transform" />
-                        </div>
+                        </Link>
 
                         {/* Desktop Nav */}
                         <nav className="hidden md:flex items-center space-x-1 bg-slate-100/50 rounded-full px-2 py-1 border border-white/50">
-                            <button onClick={() => scrollToSection('home')} className="px-4 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all duration-300">হোম</button>
+                            <Link to="/" onClick={scrollToTop} className="px-4 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all duration-300">হোম</Link>
                             <Link to="/about" className="px-4 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all duration-300">আমাদের সম্পর্কে</Link>
                             <Link to="/ecosystem" className="px-4 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all duration-300">ইকোসিস্টেম</Link>
                             <Link to="/community" className="px-4 py-2 rounded-full text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-white transition-all duration-300">কমিউনিটি</Link>
@@ -161,7 +152,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                                     </div>
                                 </div>
                             )}
-                            <button onClick={() => scrollToSection('home')} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">হোম</button>
+                            <Link to="/" onClick={scrollToTop} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">হোম</Link>
                             <Link to="/about" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">আমাদের সম্পর্কে</Link>
                             <Link to="/ecosystem" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">ইকোসিস্টেম</Link>
                             <Link to="/community" onClick={() => setIsMenuOpen(false)} className="text-left text-base font-medium text-slate-800 hover:text-blue-600 p-3 rounded-xl hover:bg-blue-50 transition-colors">কমিউনিটি</Link>

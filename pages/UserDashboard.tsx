@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Affiliate } from '../types';
 import { updateUserProfile, getUserApplications, saveWithdrawal } from '../services/firebase';
-import { User as UserIcon, Edit3, Save, BriefcaseBusiness, TrendingUp, Copy, Wallet, GraduationCap } from 'lucide-react';
+import { User as UserIcon, Edit3, Save, Briefcase, TrendingUp, Copy, Wallet, GraduationCap } from 'lucide-react';
 
 interface UserDashboardProps {
     user: User | null;
@@ -175,7 +175,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                             onClick={() => setActiveTab('applications')}
                             className={`w-full text-left px-5 py-3 rounded-xl font-medium flex items-center gap-3 transition-all ${activeTab === 'applications' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
                         >
-                            <BriefcaseBusiness size={18} /> আবেদনসমূহ
+                            <Briefcase size={18} /> আবেদনসমূহ
                         </button>
                         <button 
                             onClick={() => setActiveTab('affiliate')}
