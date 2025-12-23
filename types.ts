@@ -38,7 +38,8 @@ export interface Job {
     description?: string; 
     applyLink?: string; // Can be URL or Email
     userId?: string;     
-    userEmail?: string;  
+    userEmail?: string; 
+    category?: string; // New Category
 }
 
 export interface JobInterest {
@@ -58,6 +59,18 @@ export interface EcosystemNotice {
     date: any;
 }
 
+export interface ClassSession {
+    id?: string;
+    batch: string;
+    topic: string;
+    mentorName: string;
+    date: string; // ISO Date string
+    time: string;
+    link: string;
+    module?: number;
+    createdAt?: any;
+}
+
 export interface EcosystemApplication {
     id?: string;
     // Auto-filled from User Profile
@@ -69,6 +82,7 @@ export interface EcosystemApplication {
     
     transactionId: string;
     paymentMethod: 'Bkash' | 'Nagad';
+    paymentDetails?: string;
     status: 'pending' | 'approved' | 'rejected';
     createdAt: any;
     userId: string;
@@ -83,6 +97,11 @@ export interface EcosystemApplication {
     notices?: EcosystemNotice[];
     dueAmount?: number;
     paidAmount?: number;
+    
+    // Performance
+    attendance?: number; // Percentage
+    marks?: number; // Average marks
+    remarks?: string;
 }
 
 export interface CommunityMember {

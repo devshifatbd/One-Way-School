@@ -300,6 +300,68 @@ export const getEcosystemApplications = () => getData('ecosystem_applications');
 export const updateEcosystemAppStatus = (id: string, status: string) => updateData('ecosystem_applications', id, { status });
 export const updateEcosystemStudent = (id: string, data: any) => updateData('ecosystem_applications', id, data);
 
+// Bulk Update for Ecosystem Batch (Class/Module Info)
+export const updateBatchClassDetails = async (batchName: string, data: any) => {
+    try {
+        // 1. Get all students in the batch
+        const q = query(collection(db, 'ecosystem_applications'), where('batch', '==', batchName));
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) return 0;
+
+        // 2. Perform Batch Write (max 500 ops per batch)
+        const batch = writeBatch(db);
+        snapshot.docs.forEach((doc) => {
+            batch.update(doc.ref, {
+                ...data,
+                updatedAt: serverTimestamp()
+            });
+        });
+
+        await batch.commit();
+        return snapshot.size;
+    } catch (e) {
+        console.error("Batch update failed", e);
+        throw e;
+    }
+};
+
+// Class Session Management
+export const saveClassSession = (data: any) => addData('class_sessions', data);
+export const getClassSessions = () => getData('class_sessions');
+export const deleteClassSession = (id: string) => deleteData('class_sessions', id);
+
+// Bulk Notice Send
+export const sendBatchNotice = async (targetBatch: string, notice: any) => {
+    try {
+        let q;
+        if (targetBatch === 'All') {
+            // Get Approved Students only
+            q = query(collection(db, 'ecosystem_applications'), where('status', '==', 'approved'));
+        } else {
+            q = query(collection(db, 'ecosystem_applications'), where('batch', '==', targetBatch));
+        }
+        
+        const snapshot = await getDocs(q);
+        if (snapshot.empty) return 0;
+
+        const batch = writeBatch(db);
+        snapshot.docs.forEach((docSnap) => {
+            const currentData = docSnap.data();
+            const existingNotices = currentData.notices || [];
+            batch.update(docSnap.ref, {
+                notices: [notice, ...existingNotices]
+            });
+        });
+
+        await batch.commit();
+        return snapshot.size;
+    } catch (e) {
+        console.error("Batch notice failed", e);
+        throw e;
+    }
+};
+
 // Instructor Management
 export const createInstructor = async (instructorData: any, pass: string) => {
     try {
@@ -403,6 +465,17 @@ export const saveJob = (data: any) => addData('jobs', data);
 export const updateJob = (id: string, data: any) => updateData('jobs', id, data);
 export const getJobs = () => getData('jobs');
 export const deleteJob = (id: string) => deleteData('jobs', id);
+
+export const bulkSaveJobs = async (jobs: any[]) => {
+    try {
+        const batch = writeBatch(db);
+        jobs.forEach(job => {
+            const docRef = doc(collection(db, "jobs"));
+            batch.set(docRef, { ...job, createdAt: serverTimestamp(), postedDate: serverTimestamp() });
+        });
+        await batch.commit();
+    } catch(e) { throw e; }
+};
 
 // Blogs
 export const saveBlogPost = (data: any) => addData('blogs', data);
