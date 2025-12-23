@@ -4,9 +4,12 @@ export interface User {
     displayName: string | null;
     email: string | null;
     photoURL: string | null;
-    isAdmin?: boolean;
+    role?: 'admin' | 'instructor' | 'student' | 'user'; // Roles
     // Extended Profile
     phone?: string;
+    whatsapp?: string; // New
+    profession?: string; // New
+    currentAddress?: string; // New
     bio?: string;
     institution?: string;
     address?: string;
@@ -57,10 +60,13 @@ export interface EcosystemNotice {
 
 export interface EcosystemApplication {
     id?: string;
+    // Auto-filled from User Profile
     name: string;
     phone: string;
     email: string;
-    institution: string;
+    photoURL?: string;
+    institution?: string;
+    
     transactionId: string;
     paymentMethod: 'Bkash' | 'Nagad';
     status: 'pending' | 'approved' | 'rejected';
@@ -72,7 +78,8 @@ export interface EcosystemApplication {
     joinDate?: any;
     currentModule?: number; // 1 to 4
     classLink?: string;
-    classTime?: string;
+    classTime?: string; // String description e.g., "Friday 9 PM"
+    classDates?: string[]; // Array of ISO date strings for the calendar
     notices?: EcosystemNotice[];
     dueAmount?: number;
     paidAmount?: number;
@@ -156,5 +163,14 @@ export interface WithdrawalRequest {
     method: 'Bkash' | 'Nagad' | 'Bank';
     accountNumber: string;
     status: 'pending' | 'completed' | 'rejected';
+    createdAt: any;
+}
+
+export interface Instructor {
+    id?: string;
+    name: string;
+    email: string;
+    phone?: string;
+    specialty?: string;
     createdAt: any;
 }

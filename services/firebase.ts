@@ -49,7 +49,7 @@ const googleProvider = new GoogleAuthProvider();
 const facebookProvider = new FacebookAuthProvider();
 
 // Safe DB Save (Doesn't block auth if DB write fails)
-const saveUserToDB = async (user: FirebaseUser, name?: string) => {
+const saveUserToDB = async (user: FirebaseUser, name?: string, role: string = 'user') => {
     try {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
@@ -61,6 +61,7 @@ const saveUserToDB = async (user: FirebaseUser, name?: string) => {
                 name: name || user.displayName,
                 email: user.email,
                 photoURL: user.photoURL,
+                role: role,
                 createdAt: serverTimestamp(),
                 lastLogin: serverTimestamp()
             });
@@ -298,6 +299,33 @@ export const saveEcosystemApplication = (data: any) => addData('ecosystem_applic
 export const getEcosystemApplications = () => getData('ecosystem_applications');
 export const updateEcosystemAppStatus = (id: string, status: string) => updateData('ecosystem_applications', id, { status });
 export const updateEcosystemStudent = (id: string, data: any) => updateData('ecosystem_applications', id, data);
+
+// Instructor Management
+export const createInstructor = async (instructorData: any, pass: string) => {
+    try {
+        // NOTE: In a real app, you can't create another user while logged in without Admin SDK.
+        // As a workaround for this frontend-only demo, we will create a 'users' document manually 
+        // and assume the user will be created in Auth later or separately.
+        // OR we can't create the Auth user here. 
+        // We will just save to a 'instructors' collection for listing.
+        
+        await addDoc(collection(db, 'instructors'), {
+            ...instructorData,
+            createdAt: serverTimestamp()
+        });
+        
+        // Also add to 'users' collection so if they DO sign up/log in, they have the role
+        // We can't know the UID yet if we don't create the Auth user. 
+        // This part implies we need the Admin to manually create the Auth user or use a separate admin tool.
+        // For this demo, we just store the intention.
+        
+    } catch (e) {
+        throw e;
+    }
+};
+
+export const getInstructors = () => getData('instructors');
+
 
 // Community Database
 export const saveCommunityMember = (data: any) => addData('community_members', data);
