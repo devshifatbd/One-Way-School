@@ -24,7 +24,8 @@ import {
     getDocs,
     query,
     orderBy,
-    where
+    where,
+    writeBatch
 } from 'firebase/firestore';
 
 // Configuration
@@ -108,7 +109,12 @@ export const getUserApplications = async (uid: string) => {
         const affSnap = await getDocs(affQ);
         const affiliates = affSnap.docs.map(doc => ({ id: doc.id, type: 'affiliate', ...doc.data() }));
 
-        return [...leads, ...affiliates];
+        // Fetch Ecosystem Applications
+        const ecoQ = query(collection(db, 'ecosystem_applications'), where('userId', '==', uid), orderBy('createdAt', 'desc'));
+        const ecoSnap = await getDocs(ecoQ);
+        const ecosystem = ecoSnap.docs.map(doc => ({ id: doc.id, type: 'Ecosystem Program', ...doc.data() }));
+
+        return [...leads, ...affiliates, ...ecosystem];
     } catch (error) {
         console.warn("Error fetching user applications (requires index or permission)", error);
         return [];
@@ -219,6 +225,7 @@ export const deleteData = async (collectionName: string, id: string) => {
 export const saveLead = (data: any) => addData('leads', data);
 export const getLeads = () => getData('leads');
 
+// Affiliate
 export const saveAffiliate = (data: any) => addData('affiliates', data);
 export const getAffiliates = () => getData('affiliates');
 export const updateAffiliateStatus = async (id: string, status: string, referralCode?: string) => {
@@ -228,9 +235,43 @@ export const updateAffiliateStatus = async (id: string, status: string, referral
         await updateData('affiliates', id, data);
     } catch(e) { throw e; }
 };
-
 export const saveWithdrawal = (data: any) => addData('withdrawals', data);
 export const getWithdrawals = () => getData('withdrawals');
+
+// Job Interest Tracking
+export const saveJobInterest = (data: any) => addData('job_interests', data);
+export const getJobInterests = () => getData('job_interests');
+
+// Ecosystem Applications
+export const saveEcosystemApplication = (data: any) => addData('ecosystem_applications', data);
+export const getEcosystemApplications = () => getData('ecosystem_applications');
+export const updateEcosystemAppStatus = (id: string, status: string) => updateData('ecosystem_applications', id, { status });
+
+// Community Database
+export const saveCommunityMember = (data: any) => addData('community_members', data);
+export const getCommunityMembers = () => getData('community_members');
+export const getCommunityMemberByPhone = async (phone: string) => {
+    try {
+        const q = query(collection(db, 'community_members'), where('phone', '==', phone));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+        }
+        return null;
+    } catch(e) { return null; }
+};
+export const deleteCommunityMember = (id: string) => deleteData('community_members', id);
+
+export const bulkSaveCommunityMembers = async (members: any[]) => {
+    try {
+        const batch = writeBatch(db);
+        members.forEach(member => {
+            const docRef = doc(collection(db, "community_members"));
+            batch.set(docRef, { ...member, createdAt: serverTimestamp() });
+        });
+        await batch.commit();
+    } catch(e) { throw e; }
+};
 
 export const getUsers = async () => {
     try {

@@ -33,9 +33,41 @@ export interface Job {
     compensationAndBenefits?: string; 
     postedDate?: any; 
     description?: string; 
-    applyLink?: string;
+    applyLink?: string; // Can be URL or Email
     userId?: string;     
     userEmail?: string;  
+}
+
+export interface JobInterest {
+    id?: string;
+    jobId: string;
+    jobTitle: string;
+    userId: string;
+    userName: string;
+    userEmail: string;
+    clickedAt: any;
+}
+
+export interface EcosystemApplication {
+    id?: string;
+    name: string;
+    phone: string;
+    email: string;
+    institution: string;
+    transactionId: string;
+    paymentMethod: 'Bkash' | 'Nagad';
+    status: 'pending' | 'approved' | 'rejected';
+    createdAt: any;
+    userId: string;
+}
+
+export interface CommunityMember {
+    id?: string;
+    name: string;
+    phone: string; // Used as unique identifier for login/verification
+    email: string;
+    role: string; // Position/Role
+    createdAt?: any;
 }
 
 export interface BlogPost {
