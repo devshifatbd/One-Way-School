@@ -1,7 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { 
     getAuth, 
-    GoogleAuthProvider, 
+    GoogleAuthProvider,
+    FacebookAuthProvider,
     signInWithPopup, 
     signOut, 
     onAuthStateChanged,
@@ -45,6 +46,7 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
+const facebookProvider = new FacebookAuthProvider();
 
 // Safe DB Save (Doesn't block auth if DB write fails)
 const saveUserToDB = async (user: FirebaseUser, name?: string) => {
@@ -159,6 +161,18 @@ export const signInWithGoogle = async () => {
         return user;
     } catch (error) {
         console.error("Error signing in with Google", error);
+        throw error;
+    }
+};
+
+export const signInWithFacebook = async () => {
+    try {
+        const result = await signInWithPopup(auth, facebookProvider);
+        const user = result.user;
+        await saveUserToDB(user);
+        return user;
+    } catch (error) {
+        console.error("Error signing in with Facebook", error);
         throw error;
     }
 };

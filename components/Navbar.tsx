@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, User as UserIcon, LogOut, Mail, Chrome, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, Mail, Chrome, LayoutDashboard, Facebook } from 'lucide-react';
 import { User } from '../types';
-import { signInWithGoogle, logout, loginWithEmail, registerWithEmail } from '../services/firebase';
+import { signInWithGoogle, signInWithFacebook, logout, loginWithEmail, registerWithEmail } from '../services/firebase';
 
 interface NavbarProps {
     user: User | null;
@@ -54,6 +54,21 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
         } catch (e: any) { 
             console.error(e);
             setError(e.message || "Google Login Failed. Check console."); 
+        }
+    };
+
+    const handleFacebookLogin = async () => {
+        try {
+            const loggedInUser = await signInWithFacebook();
+            setIsLoginModalOpen(false);
+            if (loggedInUser.email && ADMIN_EMAILS.includes(loggedInUser.email)) {
+                navigate('/admin');
+            } else {
+                navigate('/dashboard');
+            }
+        } catch (e: any) { 
+            console.error(e);
+            setError("Facebook Login Failed. Ensure Facebook Provider is enabled in Firebase."); 
         }
     };
 
@@ -185,18 +200,24 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                                     {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
                                     <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
-                                        {authMode === 'login' ? <><UserIcon size={18}/> লগইন</> : <><Mail size={18}/> রেজিস্টার</>}
+                                        {authMode === 'login' ? <><Mail size={18}/> ইমেইল দিয়ে লগইন</> : <><Mail size={18}/> রেজিস্টার</>}
                                     </button>
                                 </form>
 
                                 <div className="relative my-6">
                                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                                    <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-500">অথবা</span></div>
+                                    <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-500">অথবা সোশ্যাল মিডিয়া দিয়ে লগইন</span></div>
                                 </div>
 
-                                <button onClick={handleGoogleLogin} className="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
-                                    <Chrome size={18} className="text-blue-600"/> গুগল দিয়ে লগইন
-                                </button>
+                                <div className="space-y-3">
+                                    <button onClick={handleGoogleLogin} className="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
+                                        <Chrome size={18} className="text-blue-600"/> গুগল দিয়ে লগইন
+                                    </button>
+                                    
+                                    <button onClick={handleFacebookLogin} className="w-full border border-slate-200 hover:bg-blue-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
+                                        <Facebook size={18} className="text-blue-700"/> ফেসবুক দিয়ে লগইন
+                                    </button>
+                                </div>
 
                                 <div className="text-center mt-4">
                                     <button onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setError(''); }} className="text-blue-600 font-bold text-sm hover:underline">
