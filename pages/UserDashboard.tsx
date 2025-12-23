@@ -14,6 +14,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
     const [refreshing, setRefreshing] = useState(false);
     const [imageUploading, setImageUploading] = useState(false);
     
+    // Local state for immediate UI update of profile image
+    const [displayPhoto, setDisplayPhoto] = useState<string>('');
+
     const [applications, setApplications] = useState<any[]>([]);
     const [affiliateData, setAffiliateData] = useState<Affiliate | null>(null);
     const [ecosystemData, setEcosystemData] = useState<EcosystemApplication | null>(null);
@@ -39,6 +42,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
 
     useEffect(() => {
         if (user) {
+            setDisplayPhoto(user.photoURL || 'https://via.placeholder.com/150');
             setFormData({
                 phone: user.phone || '',
                 institution: user.institution || '',
@@ -69,6 +73,10 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
             
             if (eco) {
                 setEcosystemData(eco as EcosystemApplication);
+                // If on applications or affiliate tab (which are hidden for ecosystem users), switch to profile or classroom
+                if (activeTab === 'applications' || activeTab === 'affiliate') {
+                    setActiveTab('profile');
+                }
             } else {
                 setEcosystemData(null);
             }
@@ -98,9 +106,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         const file = e.target.files[0];
         setImageUploading(true);
         try {
-            await uploadProfileImage(file, user.uid);
-            alert("প্রোফাইল ছবি পরিবর্তন হয়েছে! (রিফ্রেশ করুন)");
-            window.location.reload(); 
+            const url = await uploadProfileImage(file, user.uid);
+            setDisplayPhoto(url); // Update local state immediately
+            alert("প্রোফাইল ছবি পরিবর্তন হয়েছে!");
         } catch (error) {
             console.error(error);
             alert("ছবি আপলোড ব্যর্থ হয়েছে।");
@@ -184,7 +192,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
                     
                     <div className="relative group">
                         <img 
-                            src={user.photoURL || 'https://via.placeholder.com/150'} 
+                            src={displayPhoto} 
                             alt="Profile" 
                             className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white shadow-lg object-cover bg-white" 
                         />

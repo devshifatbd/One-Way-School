@@ -128,33 +128,26 @@ const sortByDateDesc = (a: any, b: any) => {
 };
 
 export const getUserApplications = async (uid: string) => {
-    try {
-        // NOTE: Removed 'orderBy' from queries to prevent "Missing Index" errors.
-        // Sorting is done in JavaScript instead.
-        
-        // Fetch Leads (Job Applications)
-        const leadsQ = query(collection(db, 'leads'), where('userId', '==', uid));
-        const leadsSnap = await getDocs(leadsQ);
-        const leads = leadsSnap.docs.map(doc => ({ id: doc.id, type: 'job/lead', ...doc.data() }));
+    // Fetch independently so one failure doesn't block others
+    const fetchCollection = async (colName: string, type: string) => {
+        try {
+            const q = query(collection(db, colName), where('userId', '==', uid));
+            const snap = await getDocs(q);
+            return snap.docs.map(doc => ({ id: doc.id, type, ...doc.data() }));
+        } catch (error) {
+            console.warn(`Failed to fetch ${colName}:`, error);
+            return [];
+        }
+    };
 
-        // Fetch Affiliate Applications
-        const affQ = query(collection(db, 'affiliates'), where('userId', '==', uid));
-        const affSnap = await getDocs(affQ);
-        const affiliates = affSnap.docs.map(doc => ({ id: doc.id, type: 'affiliate', ...doc.data() }));
+    const [leads, affiliates, ecosystem] = await Promise.all([
+        fetchCollection('leads', 'job/lead'),
+        fetchCollection('affiliates', 'affiliate'),
+        fetchCollection('ecosystem_applications', 'Ecosystem Program')
+    ]);
 
-        // Fetch Ecosystem Applications
-        const ecoQ = query(collection(db, 'ecosystem_applications'), where('userId', '==', uid));
-        const ecoSnap = await getDocs(ecoQ);
-        const ecosystem = ecoSnap.docs.map(doc => ({ id: doc.id, type: 'Ecosystem Program', ...doc.data() }));
-
-        // Merge and Sort
-        const allApps = [...leads, ...affiliates, ...ecosystem];
-        return allApps.sort(sortByDateDesc);
-
-    } catch (error) {
-        console.error("Error fetching user applications:", error);
-        return [];
-    }
+    const allApps = [...leads, ...affiliates, ...ecosystem];
+    return allApps.sort(sortByDateDesc);
 };
 
 // Auth Functions
