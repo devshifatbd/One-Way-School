@@ -4,7 +4,7 @@ import { updateUserProfile, getUserApplications, uploadProfileImage } from '../s
 import { 
     LayoutDashboard, BookOpen, FileText, CheckSquare, CreditCard, 
     LogOut, Edit3, Camera, MapPin, Phone, MessageCircle, GraduationCap,
-    ChevronLeft, ChevronRight, Globe
+    ChevronLeft, ChevronRight, Globe, TrendingUp, Award, Box, Clock, Video, Download, User as UserIcon
 } from 'lucide-react';
 import { logout } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
@@ -15,7 +15,7 @@ interface UserDashboardProps {
 
 const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<'classes' | 'cv' | 'tasks' | 'payment'>('classes');
+    const [activeTab, setActiveTab] = useState<'home' | 'classroom' | 'idcard' | 'career'>('home');
     const [ecosystemData, setEcosystemData] = useState<EcosystemApplication | null>(null);
     const [isEditingProfile, setIsEditingProfile] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -31,8 +31,6 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         whatsapp: '',
         institution: '',
     });
-
-    const [currentDate, setCurrentDate] = useState(new Date());
 
     useEffect(() => {
         if (user) {
@@ -66,16 +64,11 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         if (!user) return;
         setLoading(true);
         try {
-            await updateUserProfile(user.uid, {
-                displayName: profileData.name,
-                ...profileData
-            });
+            await updateUserProfile(user.uid, { displayName: profileData.name, ...profileData });
             setIsEditingProfile(false);
-            alert("প্রোফাইল আপডেট হয়েছে!");
-            window.location.reload(); // Quick refresh to update state fully
-        } catch (error) {
-            alert("আপডেট ব্যর্থ হয়েছে।");
-        }
+            alert("Profile Updated!");
+            window.location.reload(); 
+        } catch (error) { alert("Update Failed"); }
         setLoading(false);
     };
 
@@ -85,196 +78,247 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ user }) => {
         setImageUploading(true);
         try {
             await uploadProfileImage(file, user.uid);
-            alert("ছবি আপডেট হয়েছে! (পেজ রিফ্রেশ করুন)");
+            alert("Image Updated!");
             window.location.reload();
-        } catch (error) {
-            alert("ছবি আপলোড ব্যর্থ হয়েছে।");
-        }
+        } catch (error) { alert("Upload Failed"); }
         setImageUploading(false);
     };
 
-    const renderCalendar = () => {
-        const getDaysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-        const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-        
-        const daysInMonth = getDaysInMonth(currentDate);
-        const firstDay = getFirstDayOfMonth(currentDate);
-        const days = [];
-        
-        for (let i = 0; i < firstDay; i++) days.push(<div key={`empty-${i}`} className="h-8 w-8"></div>);
-
-        const today = new Date();
-        const classDates = ecosystemData?.classDates || ['2025-05-10', '2025-05-15', '2025-05-20']; 
-
-        for (let i = 1; i <= daysInMonth; i++) {
-            const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-            const isToday = i === today.getDate() && currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear();
-            const hasClass = classDates.includes(dateStr);
-
-            days.push(
-                <div key={i} className={`h-8 w-8 flex items-center justify-center rounded-full text-xs font-medium relative ${isToday ? 'bg-blue-600 text-white' : hasClass ? 'bg-orange-100 text-orange-600 font-bold' : 'text-slate-600 hover:bg-slate-100'}`}>
-                    {i}
-                    {hasClass && <span className="absolute bottom-0.5 w-1 h-1 bg-orange-500 rounded-full"></span>}
-                </div>
-            );
-        }
-        return days;
-    };
-
     if (!user) return null;
-    const isInstructor = user.role === 'instructor';
+
+    // Helper for Progress Bar
+    const ScoreBar = ({ label, score, color }: { label: string, score: number, color: string }) => (
+        <div className="mb-4">
+            <div className="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                <span>{label}</span>
+                <span>{score}%</span>
+            </div>
+            <div className="w-full bg-slate-200 rounded-full h-2">
+                <div className={`h-2 rounded-full ${color}`} style={{ width: `${score}%` }}></div>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="bg-[#F8FAFC] min-h-screen font-['Hind_Siliguri']">
-            <div className="flex h-screen overflow-hidden">
+        <div className="bg-[#F8FAFC] min-h-screen font-['Hind_Siliguri'] flex h-screen overflow-hidden">
                 
                 {/* Sidebar */}
                 <div className="hidden lg:flex flex-col w-64 bg-white border-r border-slate-200 h-full">
-                    <div className="p-6 border-b border-slate-100">
-                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-                            <img src="https://iili.io/f3k62rG.md.png" alt="One Way School" className="h-8 object-contain" />
-                        </div>
+                    <div className="p-6 border-b border-slate-100 flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+                        <img src="https://iili.io/f3k62rG.md.png" alt="OWS" className="h-8 object-contain" />
                     </div>
                     
                     <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                        <button onClick={() => setActiveTab('classes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'classes' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}><BookOpen size={20}/> Classes</button>
-                        <button onClick={() => setActiveTab('cv')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'cv' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}><FileText size={20}/> CV Builder</button>
-                        <button onClick={() => setActiveTab('tasks')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'tasks' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}><CheckSquare size={20}/> Tasks/Exam</button>
-                        {!isInstructor && <button onClick={() => setActiveTab('payment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'payment' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}><CreditCard size={20}/> Payment</button>}
+                        <button onClick={() => setActiveTab('home')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'home' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><LayoutDashboard size={20}/> Journey Map</button>
+                        <button onClick={() => setActiveTab('classroom')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'classroom' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><BookOpen size={20}/> LMS / Classroom</button>
+                        <button onClick={() => setActiveTab('idcard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'idcard' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><CreditCard size={20}/> Digital ID Card</button>
+                        <button onClick={() => setActiveTab('career')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'career' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><TrendingUp size={20}/> Career & Profile</button>
                     </div>
 
                     <div className="p-4 border-t border-slate-100 space-y-2">
-                        <button onClick={() => navigate('/')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors font-medium">
-                            <Globe size={20}/> Visit Website
-                        </button>
-                        <button onClick={() => { logout(); navigate('/'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-colors font-medium">
-                            <LogOut size={20}/> Logout
-                        </button>
+                        <button onClick={() => { logout(); navigate('/'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 font-medium"><LogOut size={20}/> Logout</button>
                     </div>
                 </div>
 
-                {/* Mobile Header (Visible only on small screens) */}
+                {/* Mobile Header */}
                 <div className="lg:hidden absolute top-0 left-0 w-full bg-white border-b border-slate-200 p-4 flex justify-between items-center z-50">
-                     <span className="font-bold text-xl text-slate-800">Dashboard</span>
-                     <button onClick={() => navigate('/')} className="text-blue-600 text-sm font-bold">Visit Site</button>
+                     <span className="font-bold text-xl text-slate-800">Student Panel</span>
+                     <button onClick={() => navigate('/')} className="text-blue-600 text-sm font-bold">Exit</button>
                 </div>
 
-                {/* Main Content Area */}
+                {/* Main Content */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 pt-20 lg:pt-8">
-                     <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-                        {/* Middle Content */}
-                        <div className="col-span-1 lg:col-span-8 space-y-8">
+                     <div className="max-w-6xl mx-auto">
+                        
+                        {/* Header Section */}
+                        <div className="flex justify-between items-end mb-8">
                             <div>
-                                <h1 className="text-3xl font-bold text-slate-800">My Dashboard .</h1>
-                                <p className="text-slate-500 mt-1">Welcome back, <span className="font-bold text-blue-600">{user.displayName}</span></p>
+                                <h1 className="text-3xl font-bold text-slate-800">Hello, {user.displayName} 👋</h1>
+                                <p className="text-slate-500 mt-1">Student ID: <span className="font-mono font-bold text-blue-600">{ecosystemData?.studentId || 'PENDING'}</span></p>
                             </div>
+                            <div className="hidden md:block text-right">
+                                <p className="text-sm font-bold text-slate-600">Current Phase</p>
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${ecosystemData?.currentPhase === 'Internship' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {ecosystemData?.currentPhase || 'Onboarding'}
+                                </span>
+                            </div>
+                        </div>
 
-                            {activeTab === 'classes' && (
-                                <div className="space-y-8">
-                                    <div className="grid md:grid-cols-3 gap-6">
-                                        {['Sales Mastery', 'Business Comm', 'Networking'].map((title, idx) => (
-                                            <div key={idx} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center group cursor-pointer hover:shadow-md transition-all">
-                                                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-4"><BookOpen size={28}/></div>
-                                                <h3 className="font-bold text-slate-800 text-lg mb-1">{title}</h3>
-                                                <p className="text-xs text-slate-400 mb-4">Module {idx+1}</p>
-                                                <button className="bg-slate-50 text-slate-700 px-6 py-2 rounded-full text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors">View Details</button>
+                        {/* --- TAB: JOURNEY MAP (HOME) --- */}
+                        {activeTab === 'home' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Left: Timeline & Status */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    {/* Progress Timeline */}
+                                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                                        <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><MapPin size={20} className="text-blue-600"/> My Journey</h3>
+                                        <div className="relative pl-4 border-l-2 border-slate-200 space-y-8">
+                                            <div className="relative">
+                                                <div className="absolute -left-[21px] w-4 h-4 rounded-full bg-blue-600 border-2 border-white ring-2 ring-blue-100"></div>
+                                                <h4 className="font-bold text-slate-800">Month 1-3: Learning & Skill Building</h4>
+                                                <p className="text-sm text-slate-500 mt-1">Complete 4 modules and submit assignments.</p>
+                                                <div className="mt-2 text-xs font-bold text-blue-600 bg-blue-50 inline-block px-2 py-1 rounded">IN PROGRESS</div>
                                             </div>
-                                        ))}
+                                            <div className="relative opacity-50">
+                                                <div className="absolute -left-[21px] w-4 h-4 rounded-full bg-slate-300 border-2 border-white"></div>
+                                                <h4 className="font-bold text-slate-800">Month 4: Assessment & Grading</h4>
+                                                <p className="text-sm text-slate-500 mt-1">Final evaluation of Sales, Comms, and EQ.</p>
+                                            </div>
+                                            <div className="relative opacity-50">
+                                                <div className="absolute -left-[21px] w-4 h-4 rounded-full bg-slate-300 border-2 border-white"></div>
+                                                <h4 className="font-bold text-slate-800">Placement: Internship</h4>
+                                                <p className="text-sm text-slate-500 mt-1">Get matched with partner companies.</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-slate-800 mb-4">Today's Tasks</h2>
-                                        <div className="space-y-3">
-                                            {[1, 2].map(i => (
-                                                <div key={i} className="bg-white p-4 rounded-2xl flex items-center justify-between border border-transparent hover:border-slate-100 shadow-sm">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center"><FileText size={20}/></div>
-                                                        <div><h4 className="font-bold text-slate-800 text-sm">Submit Assignment {i}</h4><p className="text-xs text-slate-400">Due Today</p></div>
-                                                    </div>
-                                                    <button className="px-4 py-2 rounded-full text-xs font-bold bg-slate-50 text-slate-500">Mark Done</button>
-                                                </div>
-                                            ))}
+
+                                    {/* Kit Tracker */}
+                                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-6 rounded-3xl border border-orange-100 flex items-center justify-between">
+                                        <div>
+                                            <h3 className="font-bold text-orange-800 flex items-center gap-2"><Box size={20}/> Welcome Kit Status</h3>
+                                            <p className="text-sm text-orange-600 mt-1">Your branded T-shirt and Notebook</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-2xl font-bold text-orange-700">{ecosystemData?.kitStatus || 'Processing'}</div>
+                                            <p className="text-xs text-orange-500 uppercase tracking-wider">Current Status</p>
                                         </div>
                                     </div>
                                 </div>
-                            )}
-                            {activeTab === 'cv' && <div className="bg-white p-10 rounded-3xl text-center shadow-sm"><FileText size={48} className="mx-auto text-slate-300 mb-4"/><h3 className="text-xl font-bold text-slate-700">CV Builder Coming Soon</h3></div>}
-                            {activeTab === 'tasks' && <div className="bg-white p-10 rounded-3xl text-center shadow-sm"><CheckSquare size={48} className="mx-auto text-slate-300 mb-4"/><h3 className="text-xl font-bold text-slate-700">No Pending Tasks</h3></div>}
-                            {activeTab === 'payment' && (
-                                <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                                    <h3 className="text-xl font-bold mb-6">Payment Status</h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-green-50 p-4 rounded-xl"><p className="text-xs text-green-600 font-bold uppercase">Paid</p><p className="text-2xl font-bold text-slate-800">৳ {ecosystemData?.paidAmount || '3,500'}</p></div>
-                                        <div className="bg-red-50 p-4 rounded-xl"><p className="text-xs text-red-600 font-bold uppercase">Due</p><p className="text-2xl font-bold text-slate-800">৳ {ecosystemData?.dueAmount || '0'}</p></div>
+
+                                {/* Right: Notices & Quick Actions */}
+                                <div className="space-y-6">
+                                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                                        <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Clock size={20} className="text-purple-600"/> Notice Board</h3>
+                                        <div className="space-y-4">
+                                            {ecosystemData?.notices?.map((notice, idx) => (
+                                                <div key={idx} className="p-3 bg-slate-50 rounded-xl border-l-4 border-purple-500">
+                                                    <h5 className="font-bold text-sm text-slate-800">{notice.title}</h5>
+                                                    <p className="text-xs text-slate-500 mt-1">{notice.message}</p>
+                                                </div>
+                                            )) || <p className="text-slate-400 text-sm italic">No notices yet.</p>}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-blue-600 text-white p-6 rounded-3xl shadow-lg shadow-blue-200">
+                                        <h3 className="font-bold text-lg mb-2">Next Live Class</h3>
+                                        <p className="text-blue-100 text-sm mb-4">Topic: Advanced Sales Psychology</p>
+                                        <button className="w-full bg-white text-blue-600 font-bold py-2 rounded-lg flex items-center justify-center gap-2"><Video size={18}/> Join Class</button>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-
-                        {/* Right Sidebar (Profile & Calendar) */}
-                        <div className="col-span-1 lg:col-span-4 space-y-8">
-                            {/* Profile Card */}
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 text-center relative group">
-                                <div className="relative inline-block mb-3">
-                                    <img src={user.photoURL || 'https://via.placeholder.com/150'} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-slate-50 shadow-md"/>
-                                    <button onClick={() => setIsEditingProfile(true)} className="absolute bottom-0 right-0 bg-blue-600 text-white p-1.5 rounded-full hover:bg-blue-700 transition-colors shadow-sm"><Edit3 size={14}/></button>
-                                </div>
-                                <h3 className="font-bold text-lg text-slate-800">{user.displayName}</h3>
-                                <p className="text-sm text-slate-500 mb-4">{user.profession || 'Student/Professional'}</p>
-                                
-                                <div className="text-left space-y-2 text-sm bg-slate-50 p-4 rounded-xl">
-                                    <div className="flex items-center gap-2 text-slate-600"><Phone size={14} className="text-blue-500"/> {user.phone || 'N/A'}</div>
-                                    <div className="flex items-center gap-2 text-slate-600"><MessageCircle size={14} className="text-green-500"/> {user.whatsapp || 'N/A'}</div>
-                                    <div className="flex items-center gap-2 text-slate-600"><GraduationCap size={14} className="text-purple-500"/> {user.institution || 'N/A'}</div>
-                                    <div className="flex items-center gap-2 text-slate-600"><MapPin size={14} className="text-red-500"/> {user.currentAddress || 'N/A'}</div>
-                                </div>
                             </div>
+                        )}
 
-                            {/* Calendar */}
-                            <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
-                                <div className="flex justify-between items-center mb-4 px-2">
-                                    <h3 className="font-bold text-slate-800">{currentDate.toLocaleString('default', { month: 'long' })}</h3>
-                                    <div className="flex gap-1">
-                                        <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))} className="p-1 hover:bg-slate-100 rounded"><ChevronLeft size={16}/></button>
-                                        <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))} className="p-1 hover:bg-slate-100 rounded"><ChevronRight size={16}/></button>
+                        {/* --- TAB: LMS / CLASSROOM --- */}
+                        {activeTab === 'classroom' && (
+                            <div className="space-y-6">
+                                <div className="grid md:grid-cols-4 gap-4">
+                                    {['Sales Mastery', 'Communication', 'Networking', 'Emotional Intelligence'].map((mod, i) => (
+                                        <button key={i} className={`p-4 rounded-xl text-left font-bold text-sm border transition-all ${i === 0 ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}>
+                                            Module {i+1}: <br/> {mod}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100">
+                                    <div className="aspect-video bg-slate-900 rounded-2xl flex items-center justify-center text-white mb-6">
+                                        <div className="text-center">
+                                            <Video size={48} className="mx-auto mb-2 opacity-50"/>
+                                            <p>Select a video to play</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center border-t border-slate-100 pt-6">
+                                        <div>
+                                            <h3 className="font-bold text-xl text-slate-800">Class 1: Introduction to Sales</h3>
+                                            <p className="text-slate-500 text-sm">Instructor: Sifatur Rahman</p>
+                                        </div>
+                                        <button className="bg-slate-100 text-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-slate-200"><Download size={16}/> Lecture Note (PDF)</button>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-7 gap-1 place-items-center text-sm">{renderCalendar()}</div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        )}
 
-            {/* Edit Profile Modal */}
-            {isEditingProfile && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-                    <div className="bg-white rounded-2xl w-full max-w-2xl my-8 p-6 md:p-8 relative shadow-2xl">
-                        <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-2"><Edit3 size={24}/> প্রোফাইল এডিট</h3>
-                        <div className="flex flex-col items-center mb-6">
-                            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                                <img src={user.photoURL || 'https://via.placeholder.com/150'} className="w-24 h-24 rounded-full object-cover border-4 border-slate-100 shadow-md"/>
-                                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="text-white"/></div>
+                        {/* --- TAB: DIGITAL ID CARD --- */}
+                        {activeTab === 'idcard' && (
+                            <div className="flex justify-center py-10">
+                                <div className="w-full max-w-sm bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 shadow-2xl relative overflow-hidden text-white border border-slate-700">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl"></div>
+                                    
+                                    <div className="flex justify-between items-start mb-8 relative z-10">
+                                        <img src="https://iili.io/f3k62rG.md.png" alt="Logo" className="h-8 object-contain brightness-0 invert" />
+                                        <span className="text-xs font-bold bg-white/10 px-2 py-1 rounded border border-white/20">STUDENT</span>
+                                    </div>
+
+                                    <div className="text-center mb-8 relative z-10">
+                                        <div className="w-24 h-24 mx-auto rounded-full p-1 bg-gradient-to-r from-blue-500 to-purple-500 mb-4">
+                                            <img src={user.photoURL || 'https://via.placeholder.com/150'} className="w-full h-full rounded-full object-cover border-2 border-slate-900"/>
+                                        </div>
+                                        <h2 className="text-2xl font-bold">{user.displayName}</h2>
+                                        <p className="text-slate-400 text-sm">{ecosystemData?.batch || 'Batch N/A'}</p>
+                                    </div>
+
+                                    <div className="bg-white/10 rounded-xl p-4 mb-6 backdrop-blur-sm border border-white/5 relative z-10">
+                                        <div className="grid grid-cols-2 gap-4 text-xs">
+                                            <div><p className="text-slate-400">ID Number</p><p className="font-mono font-bold tracking-wide">{ecosystemData?.studentId || 'PENDING'}</p></div>
+                                            <div className="text-right"><p className="text-slate-400">Valid Till</p><p className="font-bold">Dec 2025</p></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-center relative z-10">
+                                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${user.uid}`} alt="QR" className="w-16 h-16 rounded bg-white p-1"/>
+                                    </div>
+                                </div>
                             </div>
-                            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*"/>
-                            {imageUploading && <p className="text-xs text-blue-600 mt-2">Uploading...</p>}
-                        </div>
-                        <form onSubmit={handleSaveProfile} className="space-y-4">
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div><label className="block text-sm font-bold text-slate-700 mb-1">নাম</label><input value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-slate-50"/></div>
-                                <div><label className="block text-sm font-bold text-slate-700 mb-1">প্রফেশন</label><input value={profileData.profession} onChange={e => setProfileData({...profileData, profession: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-slate-50"/></div>
-                                <div><label className="block text-sm font-bold text-slate-700 mb-1">মোবাইল</label><input value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-slate-50"/></div>
-                                <div><label className="block text-sm font-bold text-slate-700 mb-1">হোয়াটসঅ্যাপ</label><input value={profileData.whatsapp} onChange={e => setProfileData({...profileData, whatsapp: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-slate-50"/></div>
-                                <div className="col-span-2"><label className="block text-sm font-bold text-slate-700 mb-1">ঠিকানা</label><input value={profileData.currentAddress} onChange={e => setProfileData({...profileData, currentAddress: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-slate-50"/></div>
-                                <div className="col-span-2"><label className="block text-sm font-bold text-slate-700 mb-1">প্রতিষ্ঠান</label><input value={profileData.institution} onChange={e => setProfileData({...profileData, institution: e.target.value})} className="w-full px-4 py-2 border rounded-lg bg-slate-50"/></div>
+                        )}
+
+                        {/* --- TAB: CAREER & PROFILE --- */}
+                        {activeTab === 'career' && (
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {/* Score Card */}
+                                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                                    <h3 className="font-bold text-lg mb-6 flex items-center gap-2"><Award size={20} className="text-yellow-500"/> Skill Assessment Score</h3>
+                                    {ecosystemData?.scores ? (
+                                        <div>
+                                            <ScoreBar label="Sales Mastery" score={ecosystemData.scores.sales} color="bg-rose-500"/>
+                                            <ScoreBar label="Communication" score={ecosystemData.scores.communication} color="bg-purple-500"/>
+                                            <ScoreBar label="Networking" score={ecosystemData.scores.networking} color="bg-blue-500"/>
+                                            <ScoreBar label="Emotional Intelligence" score={ecosystemData.scores.eq} color="bg-green-500"/>
+                                            <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+                                                <p className="text-xs text-slate-400 uppercase tracking-wider">Overall Attendance</p>
+                                                <p className="text-3xl font-bold text-slate-800">{ecosystemData.scores.attendance}%</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-slate-400 text-center py-10 italic">Scores will appear after Month 3 assessment.</p>
+                                    )}
+                                </div>
+
+                                {/* Profile Edit */}
+                                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="font-bold text-lg">My Profile</h3>
+                                        <button onClick={() => setIsEditingProfile(!isEditingProfile)} className="bg-slate-100 p-2 rounded-full hover:bg-slate-200"><Edit3 size={16}/></button>
+                                    </div>
+                                    
+                                    {isEditingProfile ? (
+                                        <form onSubmit={handleSaveProfile} className="space-y-4">
+                                            <div><label className="text-xs font-bold text-slate-500">Name</label><input className="w-full border rounded p-2 text-sm" value={profileData.name} onChange={e => setProfileData({...profileData, name: e.target.value})}/></div>
+                                            <div><label className="text-xs font-bold text-slate-500">Phone</label><input className="w-full border rounded p-2 text-sm" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})}/></div>
+                                            <div><label className="text-xs font-bold text-slate-500">Institution</label><input className="w-full border rounded p-2 text-sm" value={profileData.institution} onChange={e => setProfileData({...profileData, institution: e.target.value})}/></div>
+                                            <button className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg text-sm">Save Changes</button>
+                                        </form>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3"><div className="bg-blue-50 p-2 rounded-lg text-blue-600"><UserIcon size={18}/></div><div><p className="text-xs text-slate-400">Full Name</p><p className="font-bold text-slate-800">{user.displayName}</p></div></div>
+                                            <div className="flex items-center gap-3"><div className="bg-purple-50 p-2 rounded-lg text-purple-600"><Phone size={18}/></div><div><p className="text-xs text-slate-400">Phone</p><p className="font-bold text-slate-800">{user.phone || 'N/A'}</p></div></div>
+                                            <div className="flex items-center gap-3"><div className="bg-orange-50 p-2 rounded-lg text-orange-600"><GraduationCap size={18}/></div><div><p className="text-xs text-slate-400">Institution</p><p className="font-bold text-slate-800">{user.institution || 'N/A'}</p></div></div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex justify-end gap-3 pt-4 border-t mt-4">
-                                <button type="button" onClick={() => setIsEditingProfile(false)} className="px-6 py-2 rounded-lg font-bold text-slate-600 hover:bg-slate-100">বাতিল</button>
-                                <button type="submit" disabled={loading} className="px-8 py-2 rounded-lg font-bold bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2">{loading ? 'সংরক্ষণ...' : 'সংরক্ষণ করুন'}</button>
-                            </div>
-                        </form>
+                        )}
+
                     </div>
                 </div>
-            )}
         </div>
     );
 };

@@ -57,6 +57,7 @@ export interface EcosystemNotice {
     title: string;
     message: string;
     date: any;
+    type: 'urgent' | 'info' | 'class';
 }
 
 export interface ClassSession {
@@ -69,6 +70,7 @@ export interface ClassSession {
     link: string;
     module?: number;
     createdAt?: any;
+    materials?: { title: string; url: string; type: 'pdf' | 'video' }[];
 }
 
 export interface EcosystemApplication {
@@ -89,18 +91,39 @@ export interface EcosystemApplication {
     
     // LMS / Classroom Features
     batch?: string;
+    studentId?: string; // Generated OWS-ID
     joinDate?: any;
-    currentModule?: number; // 1 to 4
-    classLink?: string;
-    classTime?: string; // String description e.g., "Friday 9 PM"
+    currentPhase: 'Learning' | 'Assessment' | 'Internship'; // Journey Phase
+    
+    classLink?: string; // Upcoming class link
     classDates?: string[]; // Array of ISO date strings for the calendar
     notices?: EcosystemNotice[];
+    
     dueAmount?: number;
     paidAmount?: number;
     
-    // Performance
-    attendance?: number; // Percentage
-    marks?: number; // Average marks
+    // Performance & Scoring (4 Pillars)
+    scores: {
+        sales: number;
+        communication: number;
+        networking: number;
+        eq: number; // Emotional Intelligence
+        attendance: number;
+        assignment: number;
+    };
+    
+    // Logistics
+    kitStatus: 'Pending' | 'Processing' | 'Shipped' | 'Delivered';
+    
+    // Internship (Talent Matchmaking)
+    assignedInternship?: {
+        companyName: string;
+        role: string;
+        type: 'Online' | 'Offline';
+        joiningDate: string;
+        stipend?: string;
+    };
+    
     remarks?: string;
 }
 
