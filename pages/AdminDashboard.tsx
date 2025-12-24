@@ -13,7 +13,7 @@ import { User, Lead, Affiliate, Job, BlogPost, Course, JobInterest, EcosystemApp
 import { useNavigate } from 'react-router-dom';
 import { 
     LayoutDashboard, Briefcase, BookOpen, 
-    Trash2, X, ChevronLeft, LogOut, Search, Globe, Edit, CheckCircle, XCircle, MousePointerClick, CreditCard, Database, Download, Filter, UserPlus, FileSpreadsheet, Award, Layers, Bell, Calendar, Clock, ChevronRight, Sparkles, Zap, Package, Truck, Phone, ChevronDown, MessageCircle, PieChart, BarChart2, Home, Settings, Users, Share2, Mail, Plus, TrendingUp, FileText, Settings2, Megaphone, DollarSign, CheckSquare, ExternalLink, Video
+    Trash2, X, ChevronLeft, LogOut, Search, Globe, Edit, CheckCircle, XCircle, MousePointerClick, CreditCard, Database, Download, Filter, UserPlus, FileSpreadsheet, Award, Layers, Bell, Calendar, Clock, ChevronRight, Sparkles, Zap, Package, Truck, Phone, ChevronDown, MessageCircle, PieChart, BarChart2, Home, Settings, Users, Share2, Mail, Plus, TrendingUp, FileText, Settings2, Megaphone, DollarSign, CheckSquare, ExternalLink, Video, Wallet, TrendingDown, Percent, AlertCircle
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -54,10 +54,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const [paymentAmount, setPaymentAmount] = useState('');
 
     // Ecosystem Sub-states
-    const [ecoSubTab, setEcoSubTab] = useState<'list' | 'classes' | 'kit' | 'matchmaking' | 'notice' | 'batch_control'>('list');
+    const [ecoSubTab, setEcoSubTab] = useState<'list' | 'classes' | 'kit' | 'payments' | 'notice' | 'batch_control'>('list');
     const [ecoFilterBatch, setEcoFilterBatch] = useState('All');
-    const [matchCriteria, setMatchCriteria] = useState({ sales: 0, comms: 0, attendance: 0 });
-    const [matchedStudents, setMatchedStudents] = useState<EcosystemApplication[]>([]);
     
     // Ecosystem Forms
     const [classSessionForm, setClassSessionForm] = useState<ClassSession>({ batch: '', topic: '', mentorName: '', date: '', time: '', link: '' });
@@ -104,6 +102,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const [newCourse, setNewCourse] = useState<Course>({ title: '', instructor: '', price: '', duration: '', imageUrl: '', category: '' });
     const [newMember, setNewMember] = useState<CommunityMember>({ name: '', phone: '', email: '', role: '', category: 'Volunteer' });
 
+    // Constants for Fees
+    const FEES = {
+        admission: 1500,
+        module: 2000
+    };
+
     useEffect(() => {
         if (user && ADMIN_EMAILS.includes(user.email || '')) {
             fetchData();
@@ -145,6 +149,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             d.setMonth(d.getMonth() - i);
             return d.toLocaleString('default', { month: 'short' });
         }).reverse();
+        // This is mock data for visual, real implementation would map `ecosystemApps` by date
         return [20, 35, 45, 30, 55, 65]; 
     };
     const enrollmentData = getEnrollmentStats();
@@ -153,6 +158,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         const clean: any = {};
         Object.keys(data).forEach(key => { if (data[key] !== undefined) clean[key] = data[key]; });
         return clean;
+    };
+
+    // Calculate Payment Details for Single Student
+    const calculatePayments = (status: EcosystemApplication['paymentStatus']) => {
+        if (!status) return { totalPaid: 0, due: 9500 }; // 1500 + 4*2000
+        let total = 0;
+        if (status.admission) total += FEES.admission;
+        if (status.module1) total += FEES.module;
+        if (status.module2) total += FEES.module;
+        if (status.module3) total += FEES.module;
+        if (status.module4) total += FEES.module;
+        return { totalPaid: total, due: 9500 - total };
     };
 
     // --- Search Filter Logic ---
@@ -200,6 +217,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     const filteredCommunity = activeTab === 'community' ? getFilteredData() as Affiliate[] : [];
     const filteredEcosystemApps = activeTab === 'ecosystem' ? getFilteredData() as EcosystemApplication[] : ecosystemApps;
 
+
     // --- Modal Openers ---
     const openNewJobModal = () => { setEditingId(null); setNewJob(initialJobState); setRawJobText(''); setModalType('job'); setIsModalOpen(true); };
     const openEditJobModal = (job: Job) => { setEditingId(job.id || null); setNewJob(job); setModalType('job'); setIsModalOpen(true); };
@@ -229,7 +247,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
             remarks: app.remarks || '',
             transactionId: app.transactionId,
             paymentMethod: app.paymentMethod,
-            paymentDetails: app.paymentDetails
+            paymentDetails: app.paymentDetails,
+            paymentStatus: app.paymentStatus || { admission: false, module1: false, module2: false, module3: false, module4: false }
         });
         setModalType('ecosystem_grading');
         setIsModalOpen(true);
@@ -345,9 +364,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         e.preventDefault();
         setFormLoading(true);
         try {
-            // NOTE: In a real app, this would save to a 'tasks' collection or user sub-collection.
-            // For now, alerting success as backend structure for tasks wasn't fully defined in requirements.
-            // Implementation suggestion: saveTask({ ...taskForm, createdAt: new Date() });
             alert(`Task "${taskForm.title}" broadcasted to ${taskForm.targetGroup}s!`);
             setIsModalOpen(false);
         } catch(e) { alert("Failed to send task"); }
@@ -358,7 +374,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         e.preventDefault();
         setFormLoading(true);
         try {
-            // Implementation suggestion: saveMeeting({ ...meetingForm, createdAt: new Date() });
             alert(`Meeting "${meetingForm.title}" scheduled for ${meetingForm.targetGroup}s!`);
             setIsModalOpen(false);
         } catch(e) { alert("Failed to schedule meeting"); }
@@ -370,10 +385,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         if(!paymentProcessingId) return;
         setFormLoading(true);
         try {
-            await updateAffiliateStatus(paymentProcessingId, 'approved'); // Just updating status for now, ideally update balance
-            // Real implementation:
-            // 1. Create withdrawal record
-            // 2. Decrement affiliate balance
+            await updateAffiliateStatus(paymentProcessingId, 'approved'); 
             alert(`Payment of ৳${paymentAmount} disbursed successfully!`);
             setIsModalOpen(false);
             fetchData();
@@ -400,11 +412,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
 
     const updateKitStatus = async (id: string, status: string) => {
         try { await updateEcosystemStudent(id, { kitStatus: status }); fetchData(); } catch(e) { alert("Failed"); }
-    };
-
-    const handleAutoMatch = () => {
-        const matched = ecosystemApps.filter(app => app.status === 'approved' && (app.scores?.sales || 0) >= matchCriteria.sales && (app.scores?.communication || 0) >= matchCriteria.comms && (app.scores?.attendance || 0) >= matchCriteria.attendance);
-        setMatchedStudents(matched);
     };
 
     const handleAffiliateStatus = async (id: string, status: string, name?: string) => {
@@ -475,6 +482,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         }, 1500);
     };
 
+    // Calculate Total Financials
+    const getFinancialSummary = () => {
+        let totalRevenue = 0;
+        let totalDue = 0;
+        let totalStudents = filteredEcosystemApps.length;
+        let fullyPaidCount = 0;
+
+        filteredEcosystemApps.forEach(app => {
+            const { totalPaid, due } = calculatePayments(app.paymentStatus);
+            totalRevenue += totalPaid;
+            totalDue += due;
+            if (due === 0) fullyPaidCount++;
+        });
+
+        return { totalRevenue, totalDue, totalStudents, fullyPaidCount };
+    };
+
     // Filters
     const filteredMembers = communityMembers.filter(m => (categoryFilter === 'All' || m.category === categoryFilter) && (m.name.toLowerCase().includes(globalSearch.toLowerCase()) || m.phone.includes(globalSearch)));
     const filteredUsers = usersList.filter(u => (u.name || '').toLowerCase().includes(globalSearch.toLowerCase()) || (u.email || '').toLowerCase().includes(globalSearch.toLowerCase()) || (u.phone || '').includes(globalSearch)).sort((a, b) => (ADMIN_EMAILS.includes(a.email) ? -1 : 1));
@@ -494,6 +518,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         { id: 'analytics', icon: MousePointerClick, label: 'Analytics' },
         { id: 'instructors', icon: UserPlus, label: 'Instructors' }
     ];
+
+    const financialSummary = getFinancialSummary();
 
     return (
         <div className="bg-[#2B2B52] min-h-screen flex relative overflow-hidden font-['Hind_Siliguri']">
@@ -624,130 +650,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                 </div>
                             )}
 
-                            {/* --- COMMUNITY (LEADS/AFFILIATES/AMBASSADORS) TAB --- */}
-                            {activeTab === 'community' && (
-                                <div className="space-y-6">
-                                    {/* Top Navigation for Community Type */}
-                                    <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-4 flex gap-4">
-                                        <button 
-                                            onClick={() => setCommunitySubTab('affiliates')}
-                                            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-bold transition-all ${communitySubTab === 'affiliates' ? 'bg-[#4318FF] text-white shadow-lg' : 'bg-[#F4F7FE] text-[#A3AED0] hover:bg-slate-100'}`}
-                                        >
-                                            <Share2 size={18}/> Affiliates
-                                        </button>
-                                        <button 
-                                            onClick={() => setCommunitySubTab('ambassadors')}
-                                            className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-bold transition-all ${communitySubTab === 'ambassadors' ? 'bg-[#4318FF] text-white shadow-lg' : 'bg-[#F4F7FE] text-[#A3AED0] hover:bg-slate-100'}`}
-                                        >
-                                            <Megaphone size={18}/> Campus Ambassadors
-                                        </button>
-                                    </div>
-
-                                    {/* Stats Row */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-100 flex items-center gap-4">
-                                            <div className="bg-[#F4F7FE] p-4 rounded-full text-[#4318FF]"><Users size={24}/></div>
-                                            <div>
-                                                <p className="text-xs text-[#A3AED0]">Total Members</p>
-                                                <h4 className="text-2xl font-bold text-[#2B3674]">{filteredCommunity.length}</h4>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-100 flex items-center gap-4">
-                                            <div className="bg-[#F4F7FE] p-4 rounded-full text-[#05CD99]"><CheckSquare size={24}/></div>
-                                            <div>
-                                                <p className="text-xs text-[#A3AED0]">Active Tasks</p>
-                                                <h4 className="text-2xl font-bold text-[#2B3674]">0</h4>
-                                            </div>
-                                        </div>
-                                        {communitySubTab === 'affiliates' && (
-                                            <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-100 flex items-center gap-4">
-                                                <div className="bg-[#F4F7FE] p-4 rounded-full text-[#FFB547]"><DollarSign size={24}/></div>
-                                                <div>
-                                                    <p className="text-xs text-[#A3AED0]">Pending Payments</p>
-                                                    <h4 className="text-2xl font-bold text-[#2B3674]">৳ 0</h4>
-                                                </div>
-                                            </div>
-                                        )}
-                                        {communitySubTab === 'ambassadors' && (
-                                            <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-100 flex items-center gap-4">
-                                                <div className="bg-[#F4F7FE] p-4 rounded-full text-[#E31A1A]"><Video size={24}/></div>
-                                                <div>
-                                                    <p className="text-xs text-[#A3AED0]">Scheduled Meetings</p>
-                                                    <h4 className="text-2xl font-bold text-[#2B3674]">0</h4>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Main Content Area */}
-                                    <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-6 min-h-[60vh]">
-                                        <div className="flex justify-between items-center mb-6">
-                                            <h3 className="text-lg font-bold text-[#2B3674]">{communitySubTab === 'affiliates' ? 'Affiliate Management' : 'Ambassador Management'}</h3>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => openTaskModal(communitySubTab === 'affiliates' ? 'Affiliate' : 'Ambassador')} className="bg-[#F4F7FE] text-[#4318FF] px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-100"><CheckSquare size={16}/> Assign Task</button>
-                                                <button onClick={() => openMeetingModal(communitySubTab === 'affiliates' ? 'Affiliate' : 'Ambassador')} className="bg-[#F4F7FE] text-[#4318FF] px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-100"><Video size={16}/> Schedule Meeting</button>
-                                            </div>
-                                        </div>
-
-                                        <table className="w-full text-left text-sm text-[#2B3674]">
-                                            <thead className="text-[#A3AED0] border-b border-slate-100">
-                                                <tr>
-                                                    <th className="p-4">Name & Contact</th>
-                                                    <th className="p-4">{communitySubTab === 'affiliates' ? 'Commission & Earnings' : 'Institution & Role'}</th>
-                                                    <th className="p-4">Status</th>
-                                                    <th className="p-4">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-100">
-                                                {filteredCommunity.map(member => (
-                                                    <tr key={member.id} className="hover:bg-[#F4F7FE] transition-colors group">
-                                                        <td className="p-4 font-bold">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden"><img src={member.imageUrl || 'https://via.placeholder.com/40'} className="w-full h-full object-cover"/></div>
-                                                                <div>
-                                                                    {member.name}
-                                                                    <div className="text-xs text-[#A3AED0] font-normal">{member.phone}</div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="p-4">
-                                                            {communitySubTab === 'affiliates' ? (
-                                                                <div>
-                                                                    <p className="font-bold text-green-600">Balance: ৳{member.balance || 0}</p>
-                                                                    <p className="text-xs text-[#A3AED0]">Lifetime: ৳{member.totalEarnings || 0}</p>
-                                                                </div>
-                                                            ) : (
-                                                                <div>
-                                                                    <p className="font-bold">{member.institution}</p>
-                                                                    <p className="text-xs text-[#A3AED0]">Campus Ambassador</p>
-                                                                </div>
-                                                            )}
-                                                        </td>
-                                                        <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-bold ${member.status==='approved'?'bg-green-50 text-green-600':'bg-yellow-50 text-yellow-600'}`}>{member.status}</span></td>
-                                                        <td className="p-4 flex gap-2">
-                                                            {member.status === 'pending' ? (
-                                                                <>
-                                                                    <button onClick={() => handleAffiliateStatus(member.id!, 'approved', member.name)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-100" title="Approve"><CheckCircle size={18}/></button>
-                                                                    <button onClick={() => handleAffiliateStatus(member.id!, 'rejected')} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-100" title="Reject"><XCircle size={18}/></button>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    {communitySubTab === 'affiliates' && <button onClick={() => openPaymentModal(member)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-100 font-bold flex items-center gap-1 text-xs"><DollarSign size={16}/> Pay</button>}
-                                                                    <button className="bg-blue-50 text-blue-600 p-2 rounded-lg hover:bg-blue-100" title="Edit"><Edit size={18}/></button>
-                                                                </>
-                                                            )}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {filteredCommunity.length === 0 && (
-                                                    <tr><td colSpan={4} className="text-center p-10 text-slate-400">No members found.</td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-
                             {/* --- ECOSYSTEM TAB --- */}
                             {activeTab === 'ecosystem' && (
                                 <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-6 min-h-[80vh]">
@@ -757,7 +659,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                             {id: 'batch_control', label: 'Batch Control', icon: Settings2},
                                             {id: 'classes', label: 'Class Schedule', icon: Layers},
                                             {id: 'kit', label: 'Logistics', icon: Package},
-                                            {id: 'matchmaking', label: 'Matchmaking', icon: Briefcase},
+                                            {id: 'payments', label: 'Payments & Due', icon: DollarSign},
                                             {id: 'notice', label: 'Notice', icon: Bell}
                                         ].map(tab => (
                                             <button 
@@ -775,9 +677,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                         <div className="overflow-x-auto">
                                             <div className="flex justify-end mb-4"><select className="bg-white border border-slate-200 text-sm p-2 rounded-lg text-[#2B3674] font-bold outline-none" value={ecoFilterBatch} onChange={e => setEcoFilterBatch(e.target.value)}><option value="All">All Batches</option>{uniqueBatches.map(b => <option key={b}>{b}</option>)}</select></div>
                                             <table className="w-full text-left text-sm text-[#2B3674]">
-                                                <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">Name</th><th className="p-3">Phase</th><th className="p-3">Scores</th><th className="p-3">Status</th><th className="p-3">Action</th></tr></thead>
-                                                <tbody className="divide-y divide-slate-100">{filteredEcosystemApps.map(app => (
+                                                <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">SL</th><th className="p-3">Name</th><th className="p-3">Phase</th><th className="p-3">Scores</th><th className="p-3">Status</th><th className="p-3">Action</th></tr></thead>
+                                                <tbody className="divide-y divide-slate-100">{filteredEcosystemApps.map((app, idx) => (
                                                     <tr key={app.id} className="hover:bg-[#F4F7FE] transition-colors">
+                                                        <td className="p-3 font-bold text-slate-400">{idx + 1}</td>
                                                         <td className="p-3 font-bold">{app.name}<div className="text-xs text-[#A3AED0] font-normal">{app.studentId || 'N/A'} <br/> {app.phone}</div></td>
                                                         <td className="p-3"><span className={`px-2 py-1 rounded text-xs font-bold ${app.currentPhase === 'Internship' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>{app.currentPhase || 'Learning'}</span></td>
                                                         <td className="p-3 text-xs">S: {app.scores?.sales || 0} | C: {app.scores?.communication || 0}</td>
@@ -789,7 +692,103 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                         </div>
                                     )}
 
-                                    {/* Batch Control (Module Set) */}
+                                    {/* Payments & Due Tab (Revamped UI) */}
+                                    {ecoSubTab === 'payments' && (
+                                        <div className="space-y-8">
+                                            {/* Financial Dashboard Cards */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                <div className="bg-gradient-to-br from-[#05CD99] to-[#049f75] p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
+                                                    <div className="absolute -right-4 -top-4 bg-white/20 w-24 h-24 rounded-full blur-xl"></div>
+                                                    <div className="relative z-10">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <div className="p-2 bg-white/20 rounded-lg"><Wallet size={20}/></div>
+                                                            <span className="font-bold text-sm uppercase tracking-wide opacity-90">Total Collected</span>
+                                                        </div>
+                                                        <h3 className="text-3xl font-mono font-bold">৳ {financialSummary.totalRevenue.toLocaleString()}</h3>
+                                                        <p className="text-xs mt-2 opacity-80 flex items-center gap-1"><TrendingUp size={12}/> Lifetime Revenue</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-gradient-to-br from-[#E31A1A] to-[#b91515] p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
+                                                    <div className="absolute -right-4 -top-4 bg-white/20 w-24 h-24 rounded-full blur-xl"></div>
+                                                    <div className="relative z-10">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <div className="p-2 bg-white/20 rounded-lg"><TrendingDown size={20}/></div>
+                                                            <span className="font-bold text-sm uppercase tracking-wide opacity-90">Total Due Amount</span>
+                                                        </div>
+                                                        <h3 className="text-3xl font-mono font-bold">৳ {financialSummary.totalDue.toLocaleString()}</h3>
+                                                        <p className="text-xs mt-2 opacity-80 flex items-center gap-1"><AlertCircle size={12} /> Pending Collections</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-gradient-to-br from-[#4318FF] to-[#2B3674] p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
+                                                    <div className="absolute -right-4 -top-4 bg-white/20 w-24 h-24 rounded-full blur-xl"></div>
+                                                    <div className="relative z-10">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <div className="p-2 bg-white/20 rounded-lg"><Percent size={20}/></div>
+                                                            <span className="font-bold text-sm uppercase tracking-wide opacity-90">Completion Rate</span>
+                                                        </div>
+                                                        <div className="flex items-end gap-2">
+                                                            <h3 className="text-3xl font-mono font-bold">{Math.round((financialSummary.fullyPaidCount / (financialSummary.totalStudents || 1)) * 100)}%</h3>
+                                                            <span className="text-sm mb-1 opacity-80">Fully Paid</span>
+                                                        </div>
+                                                        <p className="text-xs mt-2 opacity-80">{financialSummary.fullyPaidCount} out of {financialSummary.totalStudents} students</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Advanced Table */}
+                                            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                                                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                                                    <h3 className="font-bold text-[#2B3674] flex items-center gap-2"><FileText size={18}/> Student Ledger</h3>
+                                                    <select className="bg-white border border-slate-200 text-sm p-2 rounded-lg text-[#2B3674] font-bold outline-none shadow-sm" value={ecoFilterBatch} onChange={e => setEcoFilterBatch(e.target.value)}><option value="All">All Batches</option>{uniqueBatches.map(b => <option key={b}>{b}</option>)}</select>
+                                                </div>
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left text-sm text-[#2B3674] whitespace-nowrap">
+                                                        <thead className="text-slate-500 border-b border-slate-200 bg-slate-50 font-bold uppercase text-xs tracking-wider">
+                                                            <tr>
+                                                                <th className="p-4">SL</th>
+                                                                <th className="p-4">Student Info</th>
+                                                                <th className="p-4 text-center">Admission</th>
+                                                                <th className="p-4 text-center">Mod 1</th>
+                                                                <th className="p-4 text-center">Mod 2</th>
+                                                                <th className="p-4 text-center">Mod 3</th>
+                                                                <th className="p-4 text-center">Mod 4</th>
+                                                                <th className="p-4 text-right">Total Paid</th>
+                                                                <th className="p-4 text-right">Due</th>
+                                                                <th className="p-4 text-center">Action</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-100">
+                                                            {filteredEcosystemApps.map((app, idx) => {
+                                                                const p = calculatePayments(app.paymentStatus);
+                                                                return (
+                                                                    <tr key={app.id} className="hover:bg-blue-50/50 transition-colors group">
+                                                                        <td className="p-4 text-slate-400 font-mono">{idx + 1}</td>
+                                                                        <td className="p-4">
+                                                                            <div className="font-bold text-[#2B3674]">{app.name}</div>
+                                                                            <div className="text-xs text-slate-500 font-mono">{app.studentId || 'N/A'}</div>
+                                                                        </td>
+                                                                        <td className="p-4 text-center">{app.paymentStatus?.admission ? <span className="inline-block w-2 h-2 rounded-full bg-green-500 ring-4 ring-green-100"></span> : <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded">DUE</span>}</td>
+                                                                        <td className="p-4 text-center">{app.paymentStatus?.module1 ? <span className="inline-block w-2 h-2 rounded-full bg-green-500 ring-4 ring-green-100"></span> : <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded">DUE</span>}</td>
+                                                                        <td className="p-4 text-center">{app.paymentStatus?.module2 ? <span className="inline-block w-2 h-2 rounded-full bg-green-500 ring-4 ring-green-100"></span> : <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded">DUE</span>}</td>
+                                                                        <td className="p-4 text-center">{app.paymentStatus?.module3 ? <span className="inline-block w-2 h-2 rounded-full bg-green-500 ring-4 ring-green-100"></span> : <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded">DUE</span>}</td>
+                                                                        <td className="p-4 text-center">{app.paymentStatus?.module4 ? <span className="inline-block w-2 h-2 rounded-full bg-green-500 ring-4 ring-green-100"></span> : <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded">DUE</span>}</td>
+                                                                        <td className="p-4 text-right font-mono font-bold text-slate-700">৳{p.totalPaid}</td>
+                                                                        <td className="p-4 text-right font-mono font-bold text-red-500">{p.due > 0 ? `৳${p.due}` : '-'}</td>
+                                                                        <td className="p-4 text-center"><button onClick={() => openManageEcosystemModal(app)} className="bg-white border border-slate-200 hover:border-blue-500 text-slate-500 hover:text-blue-600 p-2 rounded-lg transition-all shadow-sm"><Edit size={16}/></button></td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* ... Other sub-tabs (batch_control, classes, kit, notice) remain same ... */}
+                                    {/* Batch Control */}
                                     {ecoSubTab === 'batch_control' && (
                                         <div className="bg-[#F4F7FE] p-6 rounded-2xl">
                                             <h3 className="font-bold text-[#2B3674] mb-4">Set Module for Batch</h3>
@@ -816,7 +815,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                             </div>
                                         </div>
                                     )}
-
+                                    {/* Classes */}
                                     {ecoSubTab === 'classes' && (
                                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                             <div className="bg-[#F4F7FE] p-6 rounded-2xl">
@@ -840,11 +839,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                             </div>
                                         </div>
                                     )}
+                                    {/* Kit */}
                                     {ecoSubTab === 'kit' && (
                                         <div>
                                             <h3 className="font-bold text-[#2B3674] mb-6 flex items-center gap-2"><Truck size={20}/> Welcome Kit Logistics</h3>
-                                            <div className="grid md:grid-cols-3 gap-6 mb-8"><div className="bg-orange-50 p-4 rounded-xl border border-orange-100 text-center"><h4 className="text-2xl font-bold text-orange-600">{ecosystemApps.filter(a => !a.kitStatus || a.kitStatus === 'Pending').length}</h4><p className="text-sm text-slate-600">Pending</p></div><div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center"><h4 className="text-2xl font-bold text-blue-600">{ecosystemApps.filter(a => a.kitStatus === 'Shipped').length}</h4><p className="text-sm text-slate-600">Shipped</p></div><div className="bg-green-50 p-4 rounded-xl border border-green-100 text-center"><h4 className="text-2xl font-bold text-green-600">{ecosystemApps.filter(a => a.kitStatus === 'Delivered').length}</h4><p className="text-sm text-slate-600">Delivered</p></div></div>
-                                            <div className="overflow-x-auto"><table className="w-full text-left text-sm text-[#2B3674]"><thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-4">Student</th><th className="p-4">Current Status</th><th className="p-4">Update</th></tr></thead><tbody className="divide-y divide-slate-100">{filteredEcosystemApps.filter(app => app.status === 'approved').map(app => (<tr key={app.id}><td className="p-4 font-bold">{app.name}<br/><span className="text-xs text-[#A3AED0]">{app.phone}</span></td><td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${app.kitStatus === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>{app.kitStatus || 'Pending'}</span></td><td className="p-4">
+                                            <div className="overflow-x-auto"><table className="w-full text-left text-sm text-[#2B3674]"><thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-4">SL</th><th className="p-4">Student</th><th className="p-4">Current Status</th><th className="p-4">Update</th></tr></thead><tbody className="divide-y divide-slate-100">{filteredEcosystemApps.filter(app => app.status === 'approved').map((app, idx) => (<tr key={app.id}><td className="p-4 text-slate-400">{idx + 1}</td><td className="p-4 font-bold">{app.name}<br/><span className="text-xs text-[#A3AED0]">{app.phone}</span></td><td className="p-4"><span className={`px-2 py-1 rounded text-xs font-bold ${app.kitStatus === 'Delivered' ? 'bg-green-100 text-green-600' : 'bg-orange-100 text-orange-600'}`}>{app.kitStatus || 'Pending'}</span></td><td className="p-4">
                                                 <select className="p-2 border border-slate-200 rounded bg-white text-xs" value={app.kitStatus || 'Pending'} onChange={(e) => updateKitStatus(app.id!, e.target.value)}>
                                                     <option>Pending</option>
                                                     <option>Processing</option>
@@ -854,28 +853,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                             </td></tr>))}</tbody></table></div>
                                         </div>
                                     )}
-                                    {ecoSubTab === 'matchmaking' && (
-                                        <div className="bg-[#F4F7FE] p-6 rounded-2xl">
-                                            <h3 className="font-bold text-[#2B3674] mb-4">Talent Matchmaking</h3>
-                                            <div className="flex gap-4 items-end mb-6">
-                                                <div><label className="text-xs font-bold text-[#A3AED0]">Min Sales</label><input type="number" className="w-full p-2 rounded-lg border border-slate-200 bg-white text-sm" value={matchCriteria.sales} onChange={e=>setMatchCriteria({...matchCriteria, sales: Number(e.target.value)})}/></div>
-                                                <div><label className="text-xs font-bold text-[#A3AED0]">Min Comms</label><input type="number" className="w-full p-2 rounded-lg border border-slate-200 bg-white text-sm" value={matchCriteria.comms} onChange={e=>setMatchCriteria({...matchCriteria, comms: Number(e.target.value)})}/></div>
-                                                <button onClick={handleAutoMatch} className="bg-[#4318FF] text-white px-4 py-2 rounded-lg font-bold text-sm h-10">Find</button>
-                                            </div>
-                                            {matchedStudents.map(s => (
-                                                <div key={s.id} className="bg-white p-3 rounded-xl mb-2 flex justify-between items-center">
-                                                    <div>
-                                                        <span className="font-bold text-[#2B3674] block">{s.name}</span>
-                                                        <span className="text-xs text-slate-500">Module: {s.scores?.sales ? 'Active' : 'N/A'}</span>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <button onClick={() => openManageEcosystemModal(s)} className="text-[#4318FF] font-bold text-xs bg-blue-50 px-3 py-1 rounded">Set Module</button>
-                                                        <button onClick={() => openAssignInternshipModal(s)} className="text-[#05CD99] font-bold text-xs bg-green-50 px-3 py-1 rounded">Assign Internship</button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
+                                    {/* Notice */}
                                     {ecoSubTab === 'notice' && (
                                         <div className="bg-[#F4F7FE] p-6 rounded-2xl">
                                             <h3 className="font-bold text-[#2B3674] mb-4">Broadcast Notice</h3>
@@ -890,7 +868,111 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                 </div>
                             )}
 
-                            {/* ... (Previous code for other tabs: JOBS, BLOGS, DATABASE, ANALYTICS, INSTRUCTORS, USERS) ... */}
+                            {/* --- ANALYTICS TAB (RESTORED) --- */}
+                            {activeTab === 'analytics' && (
+                                <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-6 min-h-[80vh]">
+                                    <div className="mb-6 border-b border-slate-100 pb-4 flex justify-between items-center">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-[#2B3674]">Job Application Analytics</h3>
+                                            <p className="text-xs text-[#A3AED0]">Track user interest and apply clicks on posted jobs.</p>
+                                        </div>
+                                        <div className="bg-blue-50 px-4 py-2 rounded-lg text-blue-700 font-bold text-sm">
+                                            Total Interests: {jobInterestStats.reduce((sum, job) => sum + job.clicks, 0)}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {jobInterestStats.map(job => (
+                                            <div key={job.id} className="border border-slate-100 rounded-xl overflow-hidden">
+                                                <div className="bg-[#F4F7FE] p-4 flex justify-between items-center cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => setExpandedJobStats(expandedJobStats === job.id ? null : job.id!)}>
+                                                    <div>
+                                                        <h4 className="font-bold text-[#2B3674]">{job.title}</h4>
+                                                        <p className="text-xs text-[#A3AED0]">{job.company}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-4">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${job.clicks > 0 ? 'bg-[#4318FF] text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                                            {job.clicks} Clicks
+                                                        </span>
+                                                        <ChevronDown size={16} className={`text-[#A3AED0] transition-transform ${expandedJobStats === job.id ? 'rotate-180' : ''}`}/>
+                                                    </div>
+                                                </div>
+                                                {expandedJobStats === job.id && (
+                                                    <div className="p-4 bg-white border-t border-slate-100">
+                                                        {job.interestedUsers.length > 0 ? (
+                                                            <div className="overflow-x-auto">
+                                                                <table className="w-full text-left text-sm">
+                                                                    <thead className="text-[#A3AED0] bg-[#F4F7FE] text-xs uppercase"><tr><th className="p-3">User Name</th><th className="p-3">Email</th><th className="p-3">Time</th></tr></thead>
+                                                                    <tbody className="divide-y divide-slate-100">
+                                                                        {job.interestedUsers.map((u,i) => (
+                                                                            <tr key={i} className="hover:bg-slate-50">
+                                                                                <td className="p-3 text-[#2B3674] font-medium">{u.name}</td>
+                                                                                <td className="p-3 text-slate-500">{u.email}</td>
+                                                                                <td className="p-3 text-xs text-[#A3AED0] font-mono">{u.date ? new Date(u.date.seconds*1000).toLocaleString() : '-'}</td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        ) : <p className="text-slate-400 text-sm italic text-center py-4">No clicks recorded yet.</p>}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {jobInterestStats.length === 0 && <p className="text-center text-slate-400 py-10">No job data available.</p>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- COMMUNITY (LEADS/AFFILIATES/AMBASSADORS) TAB --- */}
+                            {activeTab === 'community' && (
+                                <div className="space-y-6">
+                                    {/* ... Community Content (Kept same as before) ... */}
+                                    <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-4 flex gap-4">
+                                        <button onClick={() => setCommunitySubTab('affiliates')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-bold transition-all ${communitySubTab === 'affiliates' ? 'bg-[#4318FF] text-white shadow-lg' : 'bg-[#F4F7FE] text-[#A3AED0] hover:bg-slate-100'}`}><Share2 size={18}/> Affiliates</button>
+                                        <button onClick={() => setCommunitySubTab('ambassadors')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-bold transition-all ${communitySubTab === 'ambassadors' ? 'bg-[#4318FF] text-white shadow-lg' : 'bg-[#F4F7FE] text-[#A3AED0] hover:bg-slate-100'}`}><Megaphone size={18}/> Campus Ambassadors</button>
+                                    </div>
+
+                                    {/* Stats Row */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-100 flex items-center gap-4"><div className="bg-[#F4F7FE] p-4 rounded-full text-[#4318FF]"><Users size={24}/></div><div><p className="text-xs text-[#A3AED0]">Total Members</p><h4 className="text-2xl font-bold text-[#2B3674]">{filteredCommunity.length}</h4></div></div>
+                                        <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-100 flex items-center gap-4"><div className="bg-[#F4F7FE] p-4 rounded-full text-[#05CD99]"><CheckSquare size={24}/></div><div><p className="text-xs text-[#A3AED0]">Active Tasks</p><h4 className="text-2xl font-bold text-[#2B3674]">0</h4></div></div>
+                                        {communitySubTab === 'affiliates' && <div className="bg-white p-6 rounded-[20px] shadow-sm border border-slate-100 flex items-center gap-4"><div className="bg-[#F4F7FE] p-4 rounded-full text-[#FFB547]"><DollarSign size={24}/></div><div><p className="text-xs text-[#A3AED0]">Pending Payments</p><h4 className="text-2xl font-bold text-[#2B3674]">৳ 0</h4></div></div>}
+                                    </div>
+
+                                    {/* Main Content Area */}
+                                    <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-6 min-h-[60vh]">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h3 className="text-lg font-bold text-[#2B3674]">{communitySubTab === 'affiliates' ? 'Affiliate Management' : 'Ambassador Management'}</h3>
+                                            <div className="flex gap-2">
+                                                <button onClick={() => openTaskModal(communitySubTab === 'affiliates' ? 'Affiliate' : 'Ambassador')} className="bg-[#F4F7FE] text-[#4318FF] px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-100"><CheckSquare size={16}/> Assign Task</button>
+                                                <button onClick={() => openMeetingModal(communitySubTab === 'affiliates' ? 'Affiliate' : 'Ambassador')} className="bg-[#F4F7FE] text-[#4318FF] px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-100"><Video size={16}/> Schedule Meeting</button>
+                                            </div>
+                                        </div>
+
+                                        <table className="w-full text-left text-sm text-[#2B3674]">
+                                            <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-4">SL</th><th className="p-4">Name & Contact</th><th className="p-4">{communitySubTab === 'affiliates' ? 'Commission & Earnings' : 'Institution & Role'}</th><th className="p-4">Status</th><th className="p-4">Actions</th></tr></thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {filteredCommunity.map((member, idx) => (
+                                                    <tr key={member.id} className="hover:bg-[#F4F7FE] transition-colors group">
+                                                        <td className="p-4 text-slate-400">{idx + 1}</td>
+                                                        <td className="p-4 font-bold"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden"><img src={member.imageUrl || 'https://via.placeholder.com/40'} className="w-full h-full object-cover"/></div><div>{member.name}<div className="text-xs text-[#A3AED0] font-normal">{member.phone}</div></div></div></td>
+                                                        <td className="p-4">{communitySubTab === 'affiliates' ? (<div><p className="font-bold text-green-600">Balance: ৳{member.balance || 0}</p><p className="text-xs text-[#A3AED0]">Lifetime: ৳{member.totalEarnings || 0}</p></div>) : (<div><p className="font-bold">{member.institution}</p><p className="text-xs text-[#A3AED0]">Campus Ambassador</p></div>)}</td>
+                                                        <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-bold ${member.status==='approved'?'bg-green-50 text-green-600':'bg-yellow-50 text-yellow-600'}`}>{member.status}</span></td>
+                                                        <td className="p-4 flex gap-2">
+                                                            {member.status === 'pending' ? (
+                                                                <><button onClick={() => handleAffiliateStatus(member.id!, 'approved', member.name)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-100" title="Approve"><CheckCircle size={18}/></button><button onClick={() => handleAffiliateStatus(member.id!, 'rejected')} className="bg-red-50 text-red-600 p-2 rounded-lg hover:bg-red-100" title="Reject"><XCircle size={18}/></button></>
+                                                            ) : (
+                                                                <>{communitySubTab === 'affiliates' && <button onClick={() => openPaymentModal(member)} className="bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-100 font-bold flex items-center gap-1 text-xs"><DollarSign size={16}/> Pay</button>}<button className="bg-blue-50 text-blue-600 p-2 rounded-lg hover:bg-blue-100" title="Edit"><Edit size={18}/></button></>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- (JOBS, BLOGS, DATABASE, INSTRUCTORS, USERS tabs remain same) ... */}
                             {/* --- JOBS TAB --- */}
                             {activeTab === 'jobs' && (
                                 <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-6 min-h-[80vh]">
@@ -899,9 +981,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                         <button onClick={openNewJobModal} className="bg-[#4318FF] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"><Sparkles size={16}/> Post Job</button>
                                     </div>
                                     <table className="w-full text-left text-sm text-[#2B3674]">
-                                        <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">Title</th><th className="p-3">Company</th><th className="p-3">Deadline</th><th className="p-3">Actions</th></tr></thead>
-                                        <tbody className="divide-y divide-slate-100">{filteredJobs.map(j => (
+                                        <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">SL</th><th className="p-3">Title</th><th className="p-3">Company</th><th className="p-3">Deadline</th><th className="p-3">Actions</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-100">{filteredJobs.map((j, idx) => (
                                             <tr key={j.id} className="hover:bg-[#F4F7FE]">
+                                                <td className="p-3 text-slate-400">{idx + 1}</td>
                                                 <td className="p-3 font-bold">{j.title}</td>
                                                 <td className="p-3">{j.company}</td>
                                                 <td className="p-3 text-red-500 font-medium">{j.deadline}</td>
@@ -920,9 +1003,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                         <button onClick={openNewBlogModal} className="bg-[#4318FF] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"><Sparkles size={16}/> Write Blog</button>
                                     </div>
                                     <table className="w-full text-left text-sm text-[#2B3674]">
-                                        <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">Title</th><th className="p-3">Author</th><th className="p-3">Actions</th></tr></thead>
-                                        <tbody className="divide-y divide-slate-100">{getFilteredData().map((b: any) => (
+                                        <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">SL</th><th className="p-3">Title</th><th className="p-3">Author</th><th className="p-3">Actions</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-100">{getFilteredData().map((b: any, idx) => (
                                             <tr key={b.id} className="hover:bg-[#F4F7FE]">
+                                                <td className="p-3 text-slate-400">{idx + 1}</td>
                                                 <td className="p-3 font-bold">{b.title}</td>
                                                 <td className="p-3">{b.author}</td>
                                                 <td className="p-3 flex gap-2"><button onClick={() => openEditBlogModal(b)} className="text-[#4318FF]"><Edit size={16}/></button><button onClick={() => handleDelete('blog', b.id!)} className="text-red-400"><Trash2 size={16}/></button></td>
@@ -949,46 +1033,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                     </div>
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left text-sm text-[#2B3674]">
-                                            <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">Name</th><th className="p-3">Role</th><th className="p-3">Category</th><th className="p-3">Actions</th></tr></thead>
-                                            <tbody className="divide-y divide-slate-100">{filteredMembers.map(m => (
+                                            <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">SL</th><th className="p-3">Name</th><th className="p-3">Role</th><th className="p-3">Category</th><th className="p-3">Actions</th></tr></thead>
+                                            <tbody className="divide-y divide-slate-100">{filteredMembers.map((m, idx) => (
                                                 <tr key={m.id} className="hover:bg-[#F4F7FE]">
+                                                    <td className="p-3 text-slate-400">{idx + 1}</td>
                                                     <td className="p-3 font-bold">{m.name}<br/><span className="text-xs text-[#A3AED0]">{m.phone}</span></td>
                                                     <td className="p-3">{m.role}</td>
                                                     <td className="p-3">{m.category}</td>
-                                                    <td className="p-3 flex gap-2"><button onClick={() => handleDownloadCertificate(m)} className="text-orange-500"><Award size={16}/></button><button onClick={() => handleDelete('member', m.id!)} className="text-red-400"><Trash2 size={16}/></button></td>
+                                                    <td className="p-3 flex gap-2"><button onClick={() => openEditMemberModal(m)} className="text-[#4318FF] hover:bg-blue-50 p-1 rounded"><Edit size={16}/></button><button onClick={() => handleDownloadCertificate(m)} className="text-orange-500 hover:bg-orange-50 p-1 rounded"><Award size={16}/></button><button onClick={() => handleDelete('member', m.id!)} className="text-red-400 hover:bg-red-50 p-1 rounded"><Trash2 size={16}/></button></td>
                                                 </tr>
                                             ))}</tbody>
                                         </table>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* --- ANALYTICS TAB --- */}
-                            {activeTab === 'analytics' && (
-                                <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-6 min-h-[80vh]">
-                                    <div className="mb-6 border-b border-slate-100 pb-4">
-                                        <h3 className="text-lg font-bold text-[#2B3674]">Job Application Analytics</h3>
-                                        <p className="text-xs text-[#A3AED0]">Track who clicked 'Apply' on jobs.</p>
-                                    </div>
-                                    <div className="space-y-3">
-                                        {jobInterestStats.map(job => (
-                                            <div key={job.id} className="border border-slate-100 rounded-xl overflow-hidden">
-                                                <div className="bg-[#F4F7FE] p-4 flex justify-between items-center cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => setExpandedJobStats(expandedJobStats === job.id ? null : job.id!)}>
-                                                    <div><h4 className="font-bold text-[#2B3674]">{job.title}</h4><p className="text-xs text-[#A3AED0]">{job.company}</p></div>
-                                                    <div className="flex items-center gap-4"><span className="bg-[#4318FF] text-white px-3 py-1 rounded-full text-xs font-bold">{job.clicks} Clicks</span><ChevronDown size={16} className={`text-[#A3AED0] transition-transform ${expandedJobStats === job.id ? 'rotate-180' : ''}`}/></div>
-                                                </div>
-                                                {expandedJobStats === job.id && (
-                                                    <div className="p-4 bg-white border-t border-slate-100">
-                                                        {job.interestedUsers.length > 0 ? (
-                                                            <table className="w-full text-left text-sm">
-                                                                <thead className="text-[#A3AED0] bg-[#F4F7FE]"><tr><th className="p-2">User</th><th className="p-2">Email</th><th className="p-2">Time</th></tr></thead>
-                                                                <tbody className="divide-y divide-slate-100">{job.interestedUsers.map((u,i) => (<tr key={i}><td className="p-2 text-[#2B3674] font-medium">{u.name}</td><td className="p-2 text-slate-500">{u.email}</td><td className="p-2 text-xs text-[#A3AED0]">{u.date ? new Date(u.date.seconds*1000).toLocaleString() : '-'}</td></tr>))}</tbody>
-                                                            </table>
-                                                        ) : <p className="text-slate-400 text-sm italic text-center">No clicks recorded yet.</p>}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
                                     </div>
                                 </div>
                             )}
@@ -1001,9 +1056,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                         <button onClick={openNewInstructorModal} className="bg-[#4318FF] text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2"><UserPlus size={16}/> Add Instructor</button>
                                     </div>
                                     <table className="w-full text-left text-sm text-[#2B3674]">
-                                        <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">Name</th><th className="p-3">Email</th><th className="p-3">Joined</th></tr></thead>
-                                        <tbody className="divide-y divide-slate-100">{instructors.map(ins => (
+                                        <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">SL</th><th className="p-3">Name</th><th className="p-3">Email</th><th className="p-3">Joined</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-100">{instructors.map((ins, idx) => (
                                             <tr key={ins.id} className="hover:bg-[#F4F7FE]">
+                                                <td className="p-3 text-slate-400">{idx + 1}</td>
                                                 <td className="p-3 font-bold">{ins.name}</td>
                                                 <td className="p-3">{ins.email}</td>
                                                 <td className="p-3 text-xs text-[#A3AED0]">{ins.createdAt ? new Date(ins.createdAt.seconds * 1000).toLocaleDateString() : '-'}</td>
@@ -1018,9 +1074,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                 <div className="bg-white rounded-[20px] shadow-sm border border-slate-100 p-6 min-h-[80vh]">
                                     <h3 className="text-lg font-bold text-[#2B3674] mb-6">User Management</h3>
                                     <table className="w-full text-left text-sm text-[#2B3674]">
-                                        <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">User</th><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Action</th></tr></thead>
-                                        <tbody className="divide-y divide-slate-100">{filteredUsers.map(u => (
+                                        <thead className="text-[#A3AED0] border-b border-slate-100"><tr><th className="p-3">SL</th><th className="p-3">User</th><th className="p-3">Email</th><th className="p-3">Role</th><th className="p-3">Action</th></tr></thead>
+                                        <tbody className="divide-y divide-slate-100">{filteredUsers.map((u, idx) => (
                                             <tr key={u.id} className="hover:bg-[#F4F7FE]">
+                                                <td className="p-3 text-slate-400">{idx + 1}</td>
                                                 <td className="p-3 font-bold flex items-center gap-2"><div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden"><img src={u.photoURL || 'https://via.placeholder.com/40'} className="w-full h-full object-cover"/></div> {u.name}</td>
                                                 <td className="p-3">{u.email}</td>
                                                 <td className="p-3 capitalize">{u.role}</td>
@@ -1095,9 +1152,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                                         </div>
                                     </div>
 
+                                    {/* Payment Status Toggle Section */}
+                                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                                        <h4 className="font-bold text-green-800 mb-3 border-b border-green-200 pb-2">Payment Status (Admin Control)</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" checked={studentEditForm.paymentStatus?.admission} onChange={e => setStudentEditForm({...studentEditForm, paymentStatus: {...studentEditForm.paymentStatus!, admission: e.target.checked}})} className="w-4 h-4"/>
+                                                <label className="text-sm font-bold text-slate-700">Admission Fee (1500)</label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" checked={studentEditForm.paymentStatus?.module1} onChange={e => setStudentEditForm({...studentEditForm, paymentStatus: {...studentEditForm.paymentStatus!, module1: e.target.checked}})} className="w-4 h-4"/>
+                                                <label className="text-sm font-bold text-slate-700">Module 1 (2000)</label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" checked={studentEditForm.paymentStatus?.module2} onChange={e => setStudentEditForm({...studentEditForm, paymentStatus: {...studentEditForm.paymentStatus!, module2: e.target.checked}})} className="w-4 h-4"/>
+                                                <label className="text-sm font-bold text-slate-700">Module 2 (2000)</label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" checked={studentEditForm.paymentStatus?.module3} onChange={e => setStudentEditForm({...studentEditForm, paymentStatus: {...studentEditForm.paymentStatus!, module3: e.target.checked}})} className="w-4 h-4"/>
+                                                <label className="text-sm font-bold text-slate-700">Module 3 (2000)</label>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <input type="checkbox" checked={studentEditForm.paymentStatus?.module4} onChange={e => setStudentEditForm({...studentEditForm, paymentStatus: {...studentEditForm.paymentStatus!, module4: e.target.checked}})} className="w-4 h-4"/>
+                                                <label className="text-sm font-bold text-slate-700">Module 4 (2000)</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Payment Info */}
                                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                        <h4 className="font-bold text-blue-800 mb-3 border-b border-blue-200 pb-2">Payment Details</h4>
+                                        <h4 className="font-bold text-blue-800 mb-3 border-b border-blue-200 pb-2">Last Payment Details</h4>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div><label className="text-xs font-bold text-blue-600">Trx ID</label><p className="font-mono font-bold">{studentEditForm.transactionId}</p></div>
                                             <div><label className="text-xs font-bold text-blue-600">Method</label><p>{studentEditForm.paymentMethod}</p></div>

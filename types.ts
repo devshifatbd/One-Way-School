@@ -99,8 +99,15 @@ export interface EcosystemApplication {
     classDates?: string[]; // Array of ISO date strings for the calendar
     notices?: EcosystemNotice[];
     
-    dueAmount?: number;
-    paidAmount?: number;
+    // Granular Payment Tracking
+    paymentStatus: {
+        admission: boolean; // 1500
+        module1: boolean;   // 2000
+        module2: boolean;   // 2000
+        module3: boolean;   // 2000
+        module4: boolean;   // 2000
+    };
+    totalPaid?: number; // Calculated total
     
     // Performance & Scoring (4 Pillars)
     scores: {
