@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, User as UserIcon, LogOut, Mail, Chrome, LayoutDashboard, Facebook } from 'lucide-react';
+import { Menu, X, User as UserIcon, LogOut, LayoutDashboard, Eye, EyeOff, ChevronLeft } from 'lucide-react';
 import { User } from '../types';
-import { signInWithGoogle, signInWithFacebook, logout, loginWithEmail, registerWithEmail } from '../services/firebase';
+import { signInWithGoogle, signInWithFacebook, logout, loginWithEmail, registerWithEmail, resetPassword } from '../services/firebase';
 
 interface NavbarProps {
     user: User | null;
@@ -11,13 +11,15 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ user }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-    const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+    const [view, setView] = useState<'login' | 'register' | 'forgot'>('login');
     
     // Auth Form States
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const location = useLocation();
     const navigate = useNavigate();
@@ -40,6 +42,15 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
             navigate('/dashboard');
         }
         setIsMenuOpen(false);
+    };
+
+    const resetForm = () => {
+        setEmail('');
+        setPassword('');
+        setName('');
+        setError('');
+        setSuccessMsg('');
+        setView('login');
     };
 
     const handleGoogleLogin = async () => {
@@ -77,13 +88,14 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
         setError('');
         try {
             let loggedInUser;
-            if (authMode === 'login') {
+            if (view === 'login') {
                 loggedInUser = await loginWithEmail(email, password);
             } else {
                 loggedInUser = await registerWithEmail(name, email, password);
             }
             
             setIsLoginModalOpen(false);
+            resetForm();
             
             if (loggedInUser.email && ADMIN_EMAILS.includes(loggedInUser.email)) {
                 navigate('/admin');
@@ -93,6 +105,22 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
         } catch (e: any) {
             console.error(e);
             setError(e.message || "Authentication failed");
+        }
+    };
+
+    const handlePasswordReset = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMsg('');
+        if (!email) {
+            setError("Please enter your email address.");
+            return;
+        }
+        try {
+            await resetPassword(email);
+            setSuccessMsg("Password reset email sent! Check your inbox.");
+        } catch (e: any) {
+            setError(e.message || "Failed to send reset email.");
         }
     };
 
@@ -121,8 +149,6 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                         <div className="flex items-center gap-3">
                             {user ? (
                                 <div className="flex items-center gap-3">
-                                    
-                                    {/* DASHBOARD TEXT BUTTON (Replaces Avatar) */}
                                     <button 
                                         onClick={handleDashboardClick} 
                                         className="flex items-center gap-2 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-full text-sm font-bold transition-all shadow-sm"
@@ -178,54 +204,121 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                 )}
             </header>
 
-            {/* Login Modal */}
+            {/* Login Modal - Aura Style Updated */}
             {isLoginModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative">
-                        <button onClick={() => setIsLoginModalOpen(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={24}/></button>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#F5F5F5]/90 backdrop-blur-sm animate-fade-in font-sans">
+                    <div className="bg-white rounded-[32px] w-full max-w-[420px] p-8 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.08)] relative border border-white/50">
+                        <button onClick={() => {setIsLoginModalOpen(false); resetForm();}} className="absolute top-6 right-6 text-slate-300 hover:text-slate-600 transition-colors">
+                            <X size={24}/>
+                        </button>
                         
-                        <div className="p-8">
-                            <div className="space-y-4">
-                                <h3 className="text-xl font-bold text-center text-slate-800 mb-6">
-                                    {authMode === 'login' ? 'অ্যাকাউন্টে লগইন করুন' : 'নতুন অ্যাকাউন্ট তৈরি করুন'}
-                                </h3>
-                                
-                                <form onSubmit={handleUserAuth} className="space-y-4">
-                                    {authMode === 'register' && (
-                                        <input type="text" placeholder="আপনার নাম" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={name} onChange={e => setName(e.target.value)} required />
-                                    )}
-                                    <input type="email" placeholder="ইমেইল" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={email} onChange={e => setEmail(e.target.value)} required />
-                                    <input type="password" placeholder="পাসওয়ার্ড" className="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-blue-500" value={password} onChange={e => setPassword(e.target.value)} required />
-                                    
-                                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                        <div className="text-center mb-8">
+                            <div className="flex flex-col items-center justify-center mb-4">
+                                 {/* OWS Logo */}
+                                 <img src="https://iili.io/f3k62rG.md.png" alt="OWS Logo" className="h-10 object-contain mb-3 drop-shadow-sm" />
+                            </div>
+                            
+                            <h2 className="text-3xl font-bold text-slate-900 mb-1 tracking-tight">
+                                {view === 'login' && 'Welcome back'}
+                                {view === 'register' && 'Create account'}
+                                {view === 'forgot' && 'Reset Password'}
+                            </h2>
+                            <p className="text-slate-500 text-sm">
+                                {view === 'login' && 'Please enter your details to sign in'}
+                                {view === 'register' && 'Join the community today'}
+                                {view === 'forgot' && 'Enter email to receive reset link'}
+                            </p>
+                        </div>
 
-                                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
-                                        {authMode === 'login' ? <><Mail size={18}/> ইমেইল দিয়ে লগইন</> : <><Mail size={18}/> রেজিস্টার</>}
+                        {/* Login / Register View */}
+                        {(view === 'login' || view === 'register') && (
+                            <>
+                                {/* Social Buttons (Real Logos) */}
+                                <div className="flex justify-center gap-4 mb-8">
+                                    <button onClick={handleGoogleLogin} className="w-14 h-14 rounded-full border border-[#E5E7EB] flex items-center justify-center hover:bg-gray-50 transition-all hover:scale-105 active:scale-95 group bg-white shadow-sm">
+                                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-6 h-6" alt="Google"/>
+                                    </button>
+                                    <button onClick={handleFacebookLogin} className="w-14 h-14 rounded-full border border-[#E5E7EB] flex items-center justify-center hover:bg-gray-50 transition-all hover:scale-105 active:scale-95 group bg-white shadow-sm">
+                                        <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-6 h-6" alt="Facebook"/>
+                                    </button>
+                                </div>
+
+                                {/* Divider */}
+                                <div className="relative mb-6">
+                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#E5E7EB]"></div></div>
+                                    <div className="relative flex justify-center text-[10px] font-bold text-slate-400 uppercase tracking-widest"><span className="px-4 bg-white">OR</span></div>
+                                </div>
+
+                                {/* Auth Form */}
+                                <form onSubmit={handleUserAuth} className="space-y-4">
+                                    {view === 'register' && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-xs font-bold text-slate-900 ml-1">Your Name</label>
+                                            <input type="text" placeholder="Enter your name" className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 focus:ring-0 transition-all" value={name} onChange={e => setName(e.target.value)} required />
+                                        </div>
+                                    )}
+                                    
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-900 ml-1">Your Email Address</label>
+                                        <input type="email" placeholder="Enter your email" className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 focus:ring-0 transition-all" value={email} onChange={e => setEmail(e.target.value)} required />
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-900 ml-1">Password</label>
+                                        <div className="relative">
+                                            <input type={showPassword ? "text" : "password"} placeholder="Enter your password" className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 focus:ring-0 transition-all" value={password} onChange={e => setPassword(e.target.value)} required />
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1">
+                                                {showPassword ? <EyeOff size={18} strokeWidth={1.5}/> : <Eye size={18} strokeWidth={1.5}/>}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-between items-center pt-1">
+                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                            <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-0 cursor-pointer" />
+                                            <span className="text-xs text-slate-500 group-hover:text-slate-800 transition-colors">Remember me</span>
+                                        </label>
+                                        {view === 'login' && (
+                                            <button type="button" onClick={() => setView('forgot')} className="text-xs font-bold text-slate-900 hover:underline decoration-2 underline-offset-4">Forgot password?</button>
+                                        )}
+                                    </div>
+
+                                    {error && <p className="text-red-500 text-xs text-center bg-red-50 p-2 rounded-lg font-medium animate-pulse">{error}</p>}
+
+                                    <button type="submit" className="w-full bg-[#1C1C1E] hover:bg-black text-white font-bold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-[0.99] text-base mt-2">
+                                        {view === 'login' ? 'Sign in' : 'Sign up'}
                                     </button>
                                 </form>
 
-                                <div className="relative my-6">
-                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-                                    <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-slate-500">অথবা সোশ্যাল মিডিয়া দিয়ে লগইন</span></div>
+                                <div className="text-center mt-6 text-slate-500 text-sm font-medium">
+                                    {view === 'login' ? "Don't have an account? " : "Already have an account? "}
+                                    <button onClick={() => { setView(view === 'login' ? 'register' : 'login'); setError(''); }} className="text-slate-900 font-bold hover:underline decoration-2 underline-offset-4 ml-1">
+                                        {view === 'login' ? 'Sign up' : 'Sign in'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Forgot Password View */}
+                        {view === 'forgot' && (
+                            <form onSubmit={handlePasswordReset} className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-900 ml-1">Enter your email</label>
+                                    <input type="email" placeholder="name@example.com" className="w-full px-4 py-3 bg-white border border-[#E5E7EB] rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400 focus:ring-0 transition-all" value={email} onChange={e => setEmail(e.target.value)} required />
                                 </div>
 
-                                <div className="space-y-3">
-                                    <button onClick={handleGoogleLogin} className="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
-                                        <Chrome size={18} className="text-blue-600"/> গুগল দিয়ে লগইন
-                                    </button>
-                                    
-                                    <button onClick={handleFacebookLogin} className="w-full border border-slate-200 hover:bg-blue-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
-                                        <Facebook size={18} className="text-blue-700"/> ফেসবুক দিয়ে লগইন
-                                    </button>
-                                </div>
+                                {error && <p className="text-red-500 text-xs text-center bg-red-50 p-2 rounded-lg font-medium">{error}</p>}
+                                {successMsg && <p className="text-green-600 text-xs text-center bg-green-50 p-2 rounded-lg font-medium">{successMsg}</p>}
 
-                                <div className="text-center mt-4">
-                                    <button onClick={() => { setAuthMode(authMode === 'login' ? 'register' : 'login'); setError(''); }} className="text-blue-600 font-bold text-sm hover:underline">
-                                        {authMode === 'login' ? 'অ্যাকাউন্ট নেই? রেজিস্টার করুন' : 'লগইন পেইজে ফিরে যান'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                                <button type="submit" className="w-full bg-[#1C1C1E] hover:bg-black text-white font-bold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-[0.99] text-base mt-2">
+                                    Send Reset Link
+                                </button>
+
+                                <button type="button" onClick={() => setView('login')} className="w-full flex items-center justify-center gap-1 text-slate-500 text-sm font-bold hover:text-slate-800 transition-colors py-2">
+                                    <ChevronLeft size={16}/> Back to Login
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </div>
             )}

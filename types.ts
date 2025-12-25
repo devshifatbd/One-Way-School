@@ -4,18 +4,30 @@ export interface User {
     displayName: string | null;
     email: string | null;
     photoURL: string | null;
-    role?: 'admin' | 'instructor' | 'student' | 'user'; // Roles
-    // Extended Profile
+    role?: 'super_admin' | 'admin' | 'moderator' | 'instructor' | 'student' | 'user'; 
     phone?: string;
-    whatsapp?: string; // New
-    profession?: string; // New
-    currentAddress?: string; // New
+    whatsapp?: string; 
+    profession?: string; 
+    currentAddress?: string; 
     bio?: string;
     institution?: string;
     address?: string;
     linkedin?: string;
     portfolio?: string;
     skills?: string;
+    createdAt?: any;
+    lastLogin?: any;
+    deviceInfo?: any;
+}
+
+export interface AuditLog {
+    id?: string;
+    action: string; // e.g., "Deleted Invoice", "Approved Student"
+    performedBy: string; // Admin Name
+    performedByEmail: string;
+    targetId?: string; // ID of the item affected
+    details: string;
+    timestamp: any;
 }
 
 export interface Job {
@@ -36,10 +48,11 @@ export interface Job {
     compensationAndBenefits?: string; 
     postedDate?: any; 
     description?: string; 
-    applyLink?: string; // Can be URL or Email
+    applyLink?: string; 
     userId?: string;     
     userEmail?: string; 
-    category?: string; // New Category
+    category?: string;
+    viewCount?: number; 
 }
 
 export interface JobInterest {
@@ -49,6 +62,7 @@ export interface JobInterest {
     userId: string;
     userName: string;
     userEmail: string;
+    phone?: string; 
     clickedAt: any;
 }
 
@@ -65,17 +79,15 @@ export interface ClassSession {
     batch: string;
     topic: string;
     mentorName: string;
-    date: string; // ISO Date string
+    date: string; 
     time: string;
     link: string;
     module?: number;
     createdAt?: any;
-    materials?: { title: string; url: string; type: 'pdf' | 'video' }[];
 }
 
 export interface EcosystemApplication {
     id?: string;
-    // Auto-filled from User Profile
     name: string;
     phone: string;
     email: string;
@@ -89,48 +101,49 @@ export interface EcosystemApplication {
     createdAt: any;
     userId: string;
     
-    // LMS / Classroom Features
+    // LMS Features
     batch?: string;
-    studentId?: string; // Generated OWS-ID
+    studentId?: string; 
     joinDate?: any;
-    currentPhase: 'Learning' | 'Assessment' | 'Internship'; // Journey Phase
+    currentPhase: 'Learning' | 'Assessment' | 'Internship'; 
+    currentModule?: number;
     
-    classLink?: string; // Upcoming class link
-    classDates?: string[]; // Array of ISO date strings for the calendar
     notices?: EcosystemNotice[];
     
-    // Granular Payment Tracking
-    paymentStatus: {
-        admission: boolean; // 1500
-        module1: boolean;   // 2000
-        module2: boolean;   // 2000
-        module3: boolean;   // 2000
-        module4: boolean;   // 2000
-    };
-    totalPaid?: number; // Calculated total
+    // Payment Tracking
+    totalPaid?: number; 
+    dueAmount?: number; 
     
-    // Performance & Scoring (4 Pillars)
+    // Performance
     scores: {
         sales: number;
         communication: number;
         networking: number;
-        eq: number; // Emotional Intelligence
+        eq: number; 
         attendance: number;
         assignment: number;
     };
     
+    // Attendance: Key = Date (YYYY-MM-DD), Value = Status
+    attendanceRecord?: Record<string, 'Present' | 'Absent' | 'Late'>;
+
     // Logistics
     kitStatus: 'Pending' | 'Processing' | 'Shipped' | 'Delivered';
     
-    // Internship (Talent Matchmaking)
+    // Internship
     assignedInternship?: {
         companyName: string;
         role: string;
         type: 'Online' | 'Offline';
         joiningDate: string;
         stipend?: string;
+        status: 'Selected' | 'Ongoing' | 'Completed';
     };
     
+    // CV & Resources
+    cvRequestStatus?: 'None' | 'Requested' | 'Processing' | 'Completed';
+    cvLink?: string; 
+
     remarks?: string;
 }
 
@@ -139,11 +152,10 @@ export interface CommunityMember {
     name: string;
     phone: string;
     email: string;
-    category?: string; // New Category Field
-    role: string; // Position
+    category?: string; 
+    role: string; 
     createdAt?: any;
-    userId?: string; // Admin's ID who added this member (for permissions)
-    userEmail?: string;  
+    userId?: string; 
 }
 
 export interface BlogPost {
@@ -154,8 +166,7 @@ export interface BlogPost {
     date?: any; 
     imageUrl: string;
     content?: string;
-    userId?: string;     
-    userEmail?: string;  
+    category?: string;
 }
 
 export interface Course {
@@ -166,8 +177,6 @@ export interface Course {
     duration: string;
     imageUrl: string;
     category: string;
-    userId?: string;     
-    userEmail?: string;  
 }
 
 export interface Lead {
@@ -178,9 +187,7 @@ export interface Lead {
     profession: string;
     goal: string;
     details: any; 
-    imageUrl?: string;
     createdAt: any;
-    userId?: string;
     source?: string;
 }
 
@@ -189,19 +196,24 @@ export interface Affiliate {
     name: string;
     phone: string;
     email: string;
-    class_semester?: string;
     institution?: string;
     type: 'Affiliate' | 'Campus Ambassador';
     imageUrl?: string;
-    createdAt: any;
     userId?: string;
-    source?: string;
-    // New Fields for System
-    status: 'pending' | 'approved' | 'rejected';
-    referralCode?: string;
-    balance: number;         // Current withdrawable balance
-    totalEarnings: number;   // Lifetime earnings
-    bkashNumber?: string;
+    createdAt: any;
+    status: 'pending' | 'approved' | 'rejected' | 'banned' | 'alumni';
+    balance: number;         
+    totalEarnings: number;
+    referralCode?: string;   
+    referralCount?: number;
+    
+    // Ambassador Specifics
+    department?: string;
+    currentPoints?: number;
+    tasksCompleted?: number;
+    assignedTask?: string;
+    meetingLink?: string;
+    startDate?: any;
 }
 
 export interface WithdrawalRequest {
@@ -211,7 +223,19 @@ export interface WithdrawalRequest {
     amount: number;
     method: 'Bkash' | 'Nagad' | 'Bank';
     accountNumber: string;
-    status: 'pending' | 'completed' | 'rejected';
+    status: 'pending' | 'paid' | 'rejected';
+    requestDate: any;
+    paidDate?: any;
+}
+
+export interface AmbassadorTask {
+    id?: string;
+    title: string;
+    description: string;
+    points: number;
+    deadline: string;
+    type: 'Social Share' | 'Event' | 'Content' | 'Other';
+    status: 'Active' | 'Closed';
     createdAt: any;
 }
 
@@ -221,5 +245,42 @@ export interface Instructor {
     email: string;
     phone?: string;
     specialty?: string;
+    salary?: number; 
     createdAt: any;
+}
+
+// Detailed Employer Interface (HR) - Flexible
+export interface Employer {
+    id?: string;
+    name: string;        
+    mobile?: string;
+    email?: string;
+    dob?: string;
+    permanentAddress?: string;
+    currentAddress?: string;
+    nid?: string;
+    imageUrl?: string;
+    designation?: string;
+    salary?: number;
+    joiningDate?: string;
+    status?: 'Active' | 'Inactive';
+    createdAt?: any;
+    lastPaidMonth?: string;
+    documents?: string[]; // Links to docs
+}
+
+// Financial Record Interface
+export interface FinancialRecord {
+    id?: string;
+    type: 'Income' | 'Expense';
+    category: 'Course Fee' | 'Affiliate Payout' | 'Salary' | 'Marketing' | 'Office Rent' | 'Utility' | 'Software' | 'Misc';
+    amount: number;
+    date: any;
+    description: string;
+    paymentMethod: 'Cash' | 'Bank Transfer' | 'Bkash' | 'Nagad' | 'Cheque';
+    accountName?: string; 
+    authorizedBy?: string; // Who created the record
+    designation?: string;  // Their position
+    relatedUserId?: string; 
+    invoiceId?: string;
 }

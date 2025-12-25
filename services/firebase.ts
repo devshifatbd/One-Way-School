@@ -10,6 +10,7 @@ import {
     signInWithEmailAndPassword,
     signInAnonymously,
     updateProfile,
+    sendPasswordResetEmail, 
     User as FirebaseUser
 } from 'firebase/auth';
 import { 
@@ -48,31 +49,103 @@ export const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 const facebookProvider = new FacebookAuthProvider();
 
+const ADMIN_EMAILS = ['onewayschool.bd@gmail.com', 'onewayschool.bd@gamil.com', 'admin@ows.com'];
+
+// Helper function to sort by createdAt descending (Client-side)
+const sortByDateDesc = (a: any, b: any) => {
+    // Handle Firestore Timestamp or JS Date
+    const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
+    const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : (b.createdAt instanceof Date ? b.createdAt.getTime() : 0);
+    return timeB - timeA;
+};
+
 // Safe DB Save (Doesn't block auth if DB write fails)
 const saveUserToDB = async (user: FirebaseUser, name?: string, role: string = 'user') => {
     try {
         const userRef = doc(db, "users", user.uid);
         const userSnap = await getDoc(userRef);
         
-        // Only update basic auth info, don't overwrite detailed profile if it exists
+        const deviceInfo = {
+            userAgent: navigator.userAgent,
+            platform: navigator.platform || 'Unknown',
+            lastUpdated: new Date().toISOString()
+        };
+
+        // FORCE ADMIN ROLE if email is in list
+        let finalRole = role;
+        if (user.email && ADMIN_EMAILS.includes(user.email)) {
+            finalRole = 'admin';
+        }
+
+        const updateData = {
+            lastLogin: serverTimestamp(),
+            email: user.email,
+            deviceInfo: deviceInfo,
+            role: finalRole // Ensure role is updated/enforced
+        };
+        
         if (!userSnap.exists()) {
             await setDoc(userRef, {
                 uid: user.uid,
                 name: name || user.displayName,
                 email: user.email,
                 photoURL: user.photoURL,
-                role: role,
+                role: finalRole,
                 createdAt: serverTimestamp(),
-                lastLogin: serverTimestamp()
+                ...updateData
             });
         } else {
-            await setDoc(userRef, {
-                lastLogin: serverTimestamp()
-            }, { merge: true });
+            await setDoc(userRef, updateData, { merge: true });
         }
     } catch (e) {
         console.warn("Failed to save user to DB, likely permission issue. Auth still successful.", e);
     }
+};
+
+// --- AUDIT LOGS ---
+export const addAuditLog = async (action: string, details: string, user: any, targetId?: string) => {
+    try {
+        await addDoc(collection(db, 'audit_logs'), {
+            action,
+            details,
+            performedBy: user.displayName || 'Unknown',
+            performedByEmail: user.email || 'Unknown',
+            targetId: targetId || null,
+            timestamp: serverTimestamp()
+        });
+    } catch (e) { console.error("Audit log failed", e); }
+};
+
+export const getAuditLogs = async () => {
+    return await getData('audit_logs'); 
+};
+
+// --- GLOBAL SEARCH ---
+export const globalSearchSystem = async (term: string) => {
+    if (!term) return [];
+    const lowerTerm = term.toLowerCase();
+    const results: any[] = [];
+
+    // Search Helper
+    const searchInCol = async (col: string, type: string) => {
+        const snap = await getDocs(collection(db, col));
+        snap.forEach(doc => {
+            const data = doc.data();
+            const searchable = `${data.name} ${data.phone} ${data.email} ${data.studentId || ''} ${data.id || ''}`.toLowerCase();
+            if (searchable.includes(lowerTerm)) {
+                results.push({ id: doc.id, type, ...data });
+            }
+        });
+    };
+
+    await Promise.all([
+        searchInCol('ecosystem_applications', 'Student'),
+        searchInCol('users', 'User'),
+        searchInCol('affiliates', 'Affiliate'),
+        searchInCol('financial_records', 'Invoice')
+    ]);
+
+    return results;
 };
 
 // --- USER PROFILE FUNCTIONS ---
@@ -108,14 +181,10 @@ export const uploadProfileImage = async (file: File, uid: string) => {
         await uploadBytes(storageRef, file);
         const downloadURL = await getDownloadURL(storageRef);
         
-        // Update Auth Profile
         if (auth.currentUser) {
             await updateProfile(auth.currentUser, { photoURL: downloadURL });
         }
-        
-        // Update Firestore User Doc
         await updateUserProfile(uid, { photoURL: downloadURL });
-        
         return downloadURL;
     } catch (error) {
         console.error("Error uploading image:", error);
@@ -123,15 +192,7 @@ export const uploadProfileImage = async (file: File, uid: string) => {
     }
 };
 
-// Helper function to sort by createdAt descending (Client-side)
-const sortByDateDesc = (a: any, b: any) => {
-    const timeA = a.createdAt?.seconds || 0;
-    const timeB = b.createdAt?.seconds || 0;
-    return timeB - timeA;
-};
-
 export const getUserApplications = async (uid: string) => {
-    // Fetch independently so one failure doesn't block others
     const fetchCollection = async (colName: string, type: string) => {
         try {
             const q = query(collection(db, colName), where('userId', '==', uid));
@@ -193,9 +254,19 @@ export const registerWithEmail = async (name: string, email: string, pass: strin
 export const loginWithEmail = async (email: string, pass: string) => {
     try {
         const result = await signInWithEmailAndPassword(auth, email, pass);
+        await saveUserToDB(result.user); // Capture Login Info
         return result.user;
     } catch (error) {
         console.error("Login Error", error);
+        throw error;
+    }
+};
+
+export const resetPassword = async (email: string) => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+        console.error("Reset Password Error", error);
         throw error;
     }
 };
@@ -234,6 +305,7 @@ export const addData = async (collectionName: string, data: any) => {
 
 export const updateData = async (collectionName: string, id: string, data: any) => {
     try {
+        if (!id) throw new Error("Invalid ID for update");
         const docRef = doc(db, collectionName, id);
         await updateDoc(docRef, {
             ...data,
@@ -247,20 +319,14 @@ export const updateData = async (collectionName: string, id: string, data: any) 
 
 export const getData = async (collectionName: string) => {
     try {
-        // Keep orderBy here as simple queries usually work without complex indexes
-        const q = query(collection(db, collectionName), orderBy('createdAt', 'desc'));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        console.error(`Error fetching ${collectionName} (trying fallback)`, e);
-        // Fallback without sort if index is missing
-        try {
-            const snapshot = await getDocs(collection(db, collectionName));
-            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            return data.sort(sortByDateDesc);
-        } catch(err) {
-            return [];
-        }
+        // CLIENT SIDE SORTING FIX:
+        // Instead of orderBy which requires index, fetch all and sort in JS
+        const snapshot = await getDocs(collection(db, collectionName));
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return data.sort(sortByDateDesc);
+    } catch (err) {
+        console.error(`Error fetching ${collectionName}`, err);
+        return [];
     }
 };
 
@@ -273,43 +339,70 @@ export const deleteData = async (collectionName: string, id: string) => {
     }
 }
 
-// --- SPECIFIC EXPORTS FOR TYPE SAFETY/NAMING ---
+// --- FINANCE SYSTEM HELPERS ---
+export const saveFinancialRecord = (data: any) => addData('financial_records', { ...data, date: serverTimestamp() });
+export const getFinancialRecords = () => getData('financial_records');
+
+// --- SPECIFIC EXPORTS ---
 export const saveLead = (data: any) => addData('leads', data);
 export const getLeads = () => getData('leads');
 
-// Affiliate
 export const saveAffiliate = (data: any) => addData('affiliates', data);
 export const getAffiliates = () => getData('affiliates');
 export const updateAffiliateStatus = async (id: string, status: string, referralCode?: string) => {
     try {
         const data: any = { status };
         if(referralCode) data.referralCode = referralCode;
+        if(status === 'approved') data.startDate = serverTimestamp();
         await updateData('affiliates', id, data);
     } catch(e) { throw e; }
 };
-export const saveWithdrawal = (data: any) => addData('withdrawals', data);
-export const getWithdrawals = () => getData('withdrawals');
 
-// Job Interest Tracking
+export const getWithdrawalRequests = () => getData('withdrawals');
+export const updateWithdrawalStatus = async (id: string, status: string) => {
+    try {
+        const data: any = { status };
+        if(status === 'paid') data.paidDate = serverTimestamp();
+        await updateData('withdrawals', id, data);
+    } catch(e) { throw e; }
+};
+
+// Ambassador Tasks
+export const saveAmbassadorTask = (data: any) => addData('ambassador_tasks', data);
+export const getAmbassadorTasks = () => getData('ambassador_tasks');
+export const deleteAmbassadorTask = (id: string) => deleteData('ambassador_tasks', id);
+
+// New Feature: Complete Tenure
+export const completeAmbassadorTenure = async (id: string) => {
+    try {
+        // Change status to alumni and type to Campus Ambassador
+        await updateData('affiliates', id, { 
+            status: 'alumni', 
+            type: 'Campus Ambassador',
+            role: 'Campus Ambassador (Alumni)', // Ensure role reflects alumni status
+            endDate: serverTimestamp()
+        });
+    } catch(e) { throw e; }
+};
+
 export const saveJobInterest = (data: any) => addData('job_interests', data);
 export const getJobInterests = () => getData('job_interests');
 
-// Ecosystem Applications
 export const saveEcosystemApplication = (data: any) => addData('ecosystem_applications', data);
 export const getEcosystemApplications = () => getData('ecosystem_applications');
 export const updateEcosystemAppStatus = (id: string, status: string) => updateData('ecosystem_applications', id, { status });
 export const updateEcosystemStudent = (id: string, data: any) => updateData('ecosystem_applications', id, data);
 
-// Bulk Update for Ecosystem Batch (Class/Module Info)
 export const updateBatchClassDetails = async (batchName: string, data: any) => {
     try {
-        // 1. Get all students in the batch
         const q = query(collection(db, 'ecosystem_applications'), where('batch', '==', batchName));
         const snapshot = await getDocs(q);
         
-        if (snapshot.empty) return 0;
+        if (snapshot.empty) {
+            console.log("No students found in batch:", batchName);
+            return 0;
+        }
 
-        // 2. Perform Batch Write (max 500 ops per batch)
         const batch = writeBatch(db);
         snapshot.docs.forEach((doc) => {
             batch.update(doc.ref, {
@@ -317,7 +410,6 @@ export const updateBatchClassDetails = async (batchName: string, data: any) => {
                 updatedAt: serverTimestamp()
             });
         });
-
         await batch.commit();
         return snapshot.size;
     } catch (e) {
@@ -326,25 +418,40 @@ export const updateBatchClassDetails = async (batchName: string, data: any) => {
     }
 };
 
-// Class Session Management
 export const saveClassSession = (data: any) => addData('class_sessions', data);
+export const updateClassSession = (id: string, data: any) => updateData('class_sessions', id, data);
 export const getClassSessions = () => getData('class_sessions');
 export const deleteClassSession = (id: string) => deleteData('class_sessions', id);
 
-// Bulk Notice Send
+// Resources
+export const saveResource = (data: any) => addData('resources', data);
+export const updateResource = (id: string, data: any) => updateData('resources', id, data);
+export const getResources = () => getData('resources');
+export const deleteResource = (id: string) => deleteData('resources', id);
+
+// Notices History
+export const saveNoticeToHistory = (data: any) => addData('notice_history', data);
+export const updateNoticeHistory = (id: string, data: any) => updateData('notice_history', id, data);
+export const getNoticesHistory = () => getData('notice_history');
+
 export const sendBatchNotice = async (targetBatch: string, notice: any) => {
     try {
+        // 1. Save to Notice History Collection
+        await saveNoticeToHistory({
+            ...notice,
+            targetBatch,
+            createdAt: serverTimestamp()
+        });
+
+        // 2. Distribute to Students
         let q;
         if (targetBatch === 'All') {
-            // Get Approved Students only
             q = query(collection(db, 'ecosystem_applications'), where('status', '==', 'approved'));
         } else {
             q = query(collection(db, 'ecosystem_applications'), where('batch', '==', targetBatch));
         }
-        
         const snapshot = await getDocs(q);
         if (snapshot.empty) return 0;
-
         const batch = writeBatch(db);
         snapshot.docs.forEach((docSnap) => {
             const currentData = docSnap.data();
@@ -353,7 +460,6 @@ export const sendBatchNotice = async (targetBatch: string, notice: any) => {
                 notices: [notice, ...existingNotices]
             });
         });
-
         await batch.commit();
         return snapshot.size;
     } catch (e) {
@@ -362,34 +468,27 @@ export const sendBatchNotice = async (targetBatch: string, notice: any) => {
     }
 };
 
-// Instructor Management
 export const createInstructor = async (instructorData: any, pass: string) => {
     try {
         await addDoc(collection(db, 'instructors'), {
             ...instructorData,
             createdAt: serverTimestamp()
         });
-    } catch (e) {
-        throw e;
-    }
+    } catch (e) { throw e; }
 };
 
 export const getInstructors = () => getData('instructors');
 
+export const saveEmployer = (data: any) => addData('employers', data);
+export const getEmployers = () => getData('employers');
+export const deleteEmployer = (id: string) => deleteData('employers', id);
 
-// Community Database
 export const saveCommunityMember = (data: any) => addData('community_members', data);
 export const getCommunityMembers = () => getData('community_members');
 
 export const getCommunityMemberByPhone = async (phone: string) => {
-    const variations = [
-        phone,
-        `+88${phone}`,
-        `88${phone}`,
-        phone.startsWith('0') ? phone.substring(1) : phone
-    ];
+    const variations = [phone, `+88${phone}`, `88${phone}`, phone.startsWith('0') ? phone.substring(1) : phone];
     const uniquePhones = [...new Set(variations)];
-
     const searchCollection = async (colName: string, extraConstraints: any[] = []) => {
         for (const p of uniquePhones) {
             try {
@@ -399,18 +498,15 @@ export const getCommunityMemberByPhone = async (phone: string) => {
                     const docData = snapshot.docs[0].data();
                     return { id: snapshot.docs[0].id, ...docData };
                 }
-            } catch (e) {
-                // Ignore errors
-            }
+            } catch (e) {}
         }
         return null;
     };
-
     let foundMember = await searchCollection('community_members');
     if (foundMember) return foundMember;
-
-    const affiliateMember = await searchCollection('affiliates', [where('status', '==', 'approved')]);
     
+    // Search active affiliates/ambassadors
+    const affiliateMember = await searchCollection('affiliates', [where('status', '==', 'approved')]);
     if (affiliateMember) {
         return {
             id: affiliateMember.id,
@@ -422,12 +518,23 @@ export const getCommunityMemberByPhone = async (phone: string) => {
             createdAt: affiliateMember.createdAt
         };
     }
-
+    // Search alumni
+    const alumniMember = await searchCollection('affiliates', [where('status', '==', 'alumni')]);
+    if (alumniMember) {
+        return {
+            id: alumniMember.id,
+            name: alumniMember.name,
+            phone: alumniMember.phone,
+            email: alumniMember.email,
+            role: 'Campus Ambassador (Alumni)',
+            category: 'Campus Ambassador',
+            createdAt: alumniMember.createdAt
+        };
+    }
     return null;
 };
 
 export const deleteCommunityMember = (id: string) => deleteData('community_members', id);
-
 export const bulkSaveCommunityMembers = async (members: any[]) => {
     try {
         const batch = writeBatch(db);
@@ -441,31 +548,19 @@ export const bulkSaveCommunityMembers = async (members: any[]) => {
 
 export const getUsers = async () => {
     try {
-        // Try with sorting first (Requires Index)
-        const q = query(collection(db, 'users'), orderBy('lastLogin', 'desc'));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-        // Fallback: Fetch all without sorting if index is missing
-        console.warn("Fetching users without sort (Index missing likely)", e);
-        try {
-            const snapshot = await getDocs(collection(db, 'users'));
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (err) {
-            console.error("Critical: Could not fetch users", err);
-            return [];
-        }
-    }
+        // Client Sort
+        const snapshot = await getDocs(collection(db, 'users'));
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return data.sort((a: any, b: any) => (b.lastLogin?.seconds || 0) - (a.lastLogin?.seconds || 0));
+    } catch (err) { return []; }
 };
 
 export const deleteUserDoc = (id: string) => deleteData('users', id);
 
-// Jobs
 export const saveJob = (data: any) => addData('jobs', data);
 export const updateJob = (id: string, data: any) => updateData('jobs', id, data);
 export const getJobs = () => getData('jobs');
 export const deleteJob = (id: string) => deleteData('jobs', id);
-
 export const bulkSaveJobs = async (jobs: any[]) => {
     try {
         const batch = writeBatch(db);
@@ -477,13 +572,11 @@ export const bulkSaveJobs = async (jobs: any[]) => {
     } catch(e) { throw e; }
 };
 
-// Blogs
 export const saveBlogPost = (data: any) => addData('blogs', data);
 export const updateBlogPost = (id: string, data: any) => updateData('blogs', id, data);
 export const getBlogPosts = () => getData('blogs');
 export const deleteBlogPost = (id: string) => deleteData('blogs', id);
 
-// Courses
 export const saveCourse = (data: any) => addData('courses', data);
 export const updateCourse = (id: string, data: any) => updateData('courses', id, data);
 export const getCourses = () => getData('courses');
