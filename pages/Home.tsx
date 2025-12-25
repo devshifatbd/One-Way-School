@@ -4,7 +4,7 @@ import {
     ArrowRight, Star, Zap, CheckCircle2, Users, Sparkles, Code2, 
     Globe, Briefcase, TrendingUp, Target, CheckCircle, Quote, 
     DollarSign, Award, Gift, UserCircle, Calendar, BookOpen, 
-    Building2, Banknote, MapPin, ExternalLink, ArrowUpRight
+    Building2, Banknote, MapPin, ExternalLink, ArrowUpRight, Clock
 } from 'lucide-react';
 import { User, Job, BlogPost } from '../types';
 import { getJobs, getBlogPosts } from '../services/firebase';
@@ -525,14 +525,14 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                 <Quote className="w-10 h-10 md:w-12 md:h-12 rotate-180 fill-current" />
                             </div>
                             <div className="flex items-center gap-4 mb-4 md:mb-6">
-                                <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Leader" className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border-2 border-blue-500 p-0.5" />
+                                <img src="https://images.unsplash.com/photo-1566492031773-4f4e44671857?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Leader" className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border-2 border-blue-500 p-0.5" />
                                 <div>
-                                    <h4 className="font-bold text-slate-900 text-base md:text-lg">Tanvir Ahmed</h4>
-                                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">CEO, TechNext</p>
+                                    <h4 className="font-bold text-slate-900 text-base md:text-lg">খন্দকার রাফি</h4>
+                                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">Head of HR, Innovate Pay</p>
                                 </div>
                             </div>
                             <p className="text-slate-600 text-sm md:text-base leading-relaxed relative z-10">
-                                "One Way School থেকে আসা ইন্টার্নরা অত্যন্ত দক্ষ এবং পেশাদার। তাদের কমিউনিকেশন স্কিল এবং কাজের প্রতি ডেডিকেশন সত্যিই প্রশংসনীয়।"
+                                "One Way School-এর কারিকুলাম ইন্ডাস্ট্রি স্ট্যান্ডার্ড। এখানকার গ্র্যাজুয়েটরা করপোরেট কালচার সম্পর্কে বেশ সচেতন, যা তাদের অন্যদের চেয়ে এগিয়ে রাখে।"
                             </p>
                             <div className="flex text-yellow-400 mt-4 gap-1">
                                 {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
@@ -547,12 +547,12 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                             <div className="flex items-center gap-4 mb-4 md:mb-6">
                                 <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Leader" className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border-2 border-purple-500 p-0.5" />
                                 <div>
-                                    <h4 className="font-bold text-slate-900 text-base md:text-lg">Sabrina Rahman</h4>
-                                    <p className="text-xs text-purple-600 font-bold uppercase tracking-wider">HR Head, Creative IT</p>
+                                    <h4 className="font-bold text-slate-900 text-base md:text-lg">সামিয়া আফরিন</h4>
+                                    <p className="text-xs text-purple-600 font-bold uppercase tracking-wider">Talent Lead, City Telecom</p>
                                 </div>
                             </div>
                             <p className="text-slate-600 text-sm md:text-base leading-relaxed relative z-10">
-                                "আমরা এখান থেকে বেশ কয়েকজন গ্র্যাজুয়েট নিয়োগ দিয়েছি। তাদের টেকনিক্যাল নলেজ এবং প্রবলেম সলভিং অ্যাবিলিটি আমাদের প্রজেক্টে দারুণ ভ্যালু অ্যাড করেছে।"
+                                "টেকনিক্যাল নলেজের পাশাপাশি সফট স্কিল খুব জরুরি। OWS শিক্ষার্থীদের মধ্যে এই ব্যালেন্সটা দারুণভাবে লক্ষ্য করেছি, যা নিয়োগের ক্ষেত্রে বড় সুবিধা।"
                             </p>
                             <div className="flex text-yellow-400 mt-4 gap-1">
                                 {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
@@ -565,14 +565,14 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                 <Quote className="w-10 h-10 md:w-12 md:h-12 rotate-180 fill-current" />
                             </div>
                             <div className="flex items-center gap-4 mb-4 md:mb-6">
-                                <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Leader" className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border-2 border-green-500 p-0.5" />
+                                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" alt="Leader" className="w-12 h-12 md:w-14 md:h-14 rounded-full object-cover border-2 border-green-500 p-0.5" />
                                 <div>
-                                    <h4 className="font-bold text-slate-900 text-base md:text-lg">Rafiqul Islam</h4>
-                                    <p className="text-xs text-green-600 font-bold uppercase tracking-wider">MD, SoftPark</p>
+                                    <h4 className="font-bold text-slate-900 text-base md:text-lg">ইমতিয়াজ আহমেদ</h4>
+                                    <p className="text-xs text-green-600 font-bold uppercase tracking-wider">CEO, Desh Logistics</p>
                                 </div>
                             </div>
                             <p className="text-slate-600 text-sm md:text-base leading-relaxed relative z-10">
-                                "কর্পোরেট জগত এবং অ্যাকাডেমিক গ্যাপ পূরণে OWS দারুণ কাজ করছে। এখানকার শিক্ষার্থীরা ইন্ডাস্ট্রির জন্য সম্পূর্ণ প্রস্তুত হয়েই বের হয়।"
+                                "আমরা ফ্রেশারদের মধ্যে যে 'Growth Mindset' খুঁজি, তা এখানকার শিক্ষার্থীদের মধ্যে প্রবল। তারা নতুন কিছু শিখতে এবং চ্যালেঞ্জ নিতে সবসময় প্রস্তুত।"
                             </p>
                             <div className="flex text-yellow-400 mt-4 gap-1">
                                 {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
@@ -582,7 +582,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                 </div>
             </section>
 
-             {/* Recent Jobs Section - Keeping Original React Implementation */}
+             {/* Recent Jobs Section - Updated Design */}
             <section className="py-20 md:py-32 bg-slate-50 relative overflow-hidden">
                 <div className="container mx-auto px-4 md:px-6 relative z-10">
                     <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
@@ -600,40 +600,43 @@ const Home: React.FC<HomeProps> = ({ user }) => {
 
                     <div className="grid md:grid-cols-2 gap-8">
                         {recentJobs.length > 0 ? recentJobs.map((job) => (
-                            <div key={job.id} className="group bg-white rounded-3xl p-1 border border-slate-200 hover:border-blue-400 transition-all duration-300 hover:shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-blue-100 transition-colors"></div>
-                                <div className="bg-white rounded-[20px] p-6 md:p-8 h-full flex flex-col relative z-10">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className="flex gap-4 items-center">
-                                            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl font-bold text-slate-700 border border-slate-100 shadow-sm group-hover:scale-110 transition-transform duration-300">
+                            <div key={job.id} className="group relative bg-white rounded-3xl p-1 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur"></div>
+                                <div className="relative bg-white rounded-[1.4rem] p-6 h-full flex flex-col border border-slate-100 group-hover:border-transparent">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex gap-4">
+                                            <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-xl font-bold text-slate-700 shadow-inner group-hover:bg-gradient-to-br group-hover:from-blue-500 group-hover:to-purple-600 group-hover:text-white transition-all duration-300">
                                                 {job.company.charAt(0)}
                                             </div>
                                             <div>
-                                                <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">{job.title}</h3>
-                                                <div className="flex items-center gap-1 text-slate-500 text-sm mt-1">
-                                                    <Building2 size={14}/> {job.company}
-                                                </div>
+                                                <h3 className="text-lg font-bold text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{job.title}</h3>
+                                                <p className="text-sm text-slate-500 font-medium">{job.company}</p>
                                             </div>
                                         </div>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${job.employmentStatus === 'Full-time' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                            {job.employmentStatus}
+                                        <div className="bg-slate-50 p-2 rounded-full text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:-rotate-45 duration-300">
+                                            <ArrowRight size={18}/>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-2 mb-6">
+                                        <span className="px-3 py-1 bg-slate-50 rounded-lg text-xs font-bold text-slate-600 border border-slate-100 group-hover:border-blue-100 transition-colors flex items-center gap-1.5">
+                                            <Briefcase size={12} className="text-blue-500"/> {job.employmentStatus}
+                                        </span>
+                                        <span className="px-3 py-1 bg-slate-50 rounded-lg text-xs font-bold text-slate-600 border border-slate-100 group-hover:border-purple-100 transition-colors flex items-center gap-1.5">
+                                            <MapPin size={12} className="text-purple-500"/> {job.location}
+                                        </span>
+                                        <span className="px-3 py-1 bg-slate-50 rounded-lg text-xs font-bold text-slate-600 border border-slate-100 group-hover:border-green-100 transition-colors flex items-center gap-1.5">
+                                            <Banknote size={12} className="text-green-500"/> {job.salary}
                                         </span>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 mb-6">
-                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                            <span className="text-xs text-slate-400 block mb-1">Salary</span>
-                                            <div className="font-bold text-slate-700 text-sm flex items-center gap-1"><Banknote size={14} className="text-green-500"/> {job.salary}</div>
+                                    <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                                            <p className="text-xs font-bold text-slate-500">Deadline: <span className="text-slate-700">{job.deadline}</span></p>
                                         </div>
-                                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                            <span className="text-xs text-slate-400 block mb-1">Location</span>
-                                            <div className="font-bold text-slate-700 text-sm flex items-center gap-1"><MapPin size={14} className="text-red-500"/> {job.location}</div>
-                                        </div>
+                                        <Link to="/jobs" className="text-xs font-bold text-blue-600 hover:underline">বিস্তারিত</Link>
                                     </div>
-
-                                    <Link to="/jobs" className="mt-auto w-full bg-slate-900 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 group-hover:bg-blue-600 transition-colors">
-                                        বিস্তারিত দেখুন <ExternalLink size={16} />
-                                    </Link>
                                 </div>
                             </div>
                         )) : (

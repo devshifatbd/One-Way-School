@@ -1,3 +1,4 @@
+
 import { initializeApp } from 'firebase/app';
 import { 
     getAuth, 
@@ -11,6 +12,7 @@ import {
     signInAnonymously,
     updateProfile,
     sendPasswordResetEmail, 
+    sendEmailVerification,
     User as FirebaseUser
 } from 'firebase/auth';
 import { 
@@ -102,24 +104,6 @@ const saveUserToDB = async (user: FirebaseUser, name?: string, role: string = 'u
     }
 };
 
-// --- AUDIT LOGS ---
-export const addAuditLog = async (action: string, details: string, user: any, targetId?: string) => {
-    try {
-        await addDoc(collection(db, 'audit_logs'), {
-            action,
-            details,
-            performedBy: user.displayName || 'Unknown',
-            performedByEmail: user.email || 'Unknown',
-            targetId: targetId || null,
-            timestamp: serverTimestamp()
-        });
-    } catch (e) { console.error("Audit log failed", e); }
-};
-
-export const getAuditLogs = async () => {
-    return await getData('audit_logs'); 
-};
-
 // --- GLOBAL SEARCH ---
 export const globalSearchSystem = async (term: string) => {
     if (!term) return [];
@@ -142,7 +126,6 @@ export const globalSearchSystem = async (term: string) => {
         searchInCol('ecosystem_applications', 'Student'),
         searchInCol('users', 'User'),
         searchInCol('affiliates', 'Affiliate'),
-        searchInCol('financial_records', 'Invoice')
     ]);
 
     return results;
@@ -214,6 +197,18 @@ export const getUserApplications = async (uid: string) => {
     return allApps.sort(sortByDateDesc);
 };
 
+export const getUserJobInterests = async (uid: string) => {
+    try {
+        const q = query(collection(db, 'job_interests'), where('userId', '==', uid));
+        const snap = await getDocs(q);
+        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return data.sort(sortByDateDesc);
+    } catch (error) {
+        console.warn("Failed to fetch job interests", error);
+        return [];
+    }
+}
+
 // Auth Functions
 export const signInWithGoogle = async () => {
     try {
@@ -244,12 +239,21 @@ export const registerWithEmail = async (name: string, email: string, pass: strin
         const result = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(result.user, { displayName: name });
         await saveUserToDB(result.user, name);
+        await sendVerificationEmail(result.user);
         return result.user;
     } catch (error) {
         console.error("Registration Error", error);
         throw error;
     }
 };
+
+export const sendVerificationEmail = async (user: FirebaseUser) => {
+    try {
+        await sendEmailVerification(user);
+    } catch (e) {
+        console.error("Verification email failed", e);
+    }
+}
 
 export const loginWithEmail = async (email: string, pass: string) => {
     try {
@@ -339,13 +343,10 @@ export const deleteData = async (collectionName: string, id: string) => {
     }
 }
 
-// --- FINANCE SYSTEM HELPERS ---
-export const saveFinancialRecord = (data: any) => addData('financial_records', { ...data, date: serverTimestamp() });
-export const getFinancialRecords = () => getData('financial_records');
-
 // --- SPECIFIC EXPORTS ---
 export const saveLead = (data: any) => addData('leads', data);
 export const getLeads = () => getData('leads');
+export const deleteLead = (id: string) => deleteData('leads', id);
 
 export const saveAffiliate = (data: any) => addData('affiliates', data);
 export const getAffiliates = () => getData('affiliates');
@@ -358,6 +359,7 @@ export const updateAffiliateStatus = async (id: string, status: string, referral
     } catch(e) { throw e; }
 };
 
+export const saveWithdrawalRequest = (data: any) => addData('withdrawals', data);
 export const getWithdrawalRequests = () => getData('withdrawals');
 export const updateWithdrawalStatus = async (id: string, status: string) => {
     try {
@@ -371,6 +373,12 @@ export const updateWithdrawalStatus = async (id: string, status: string) => {
 export const saveAmbassadorTask = (data: any) => addData('ambassador_tasks', data);
 export const getAmbassadorTasks = () => getData('ambassador_tasks');
 export const deleteAmbassadorTask = (id: string) => deleteData('ambassador_tasks', id);
+
+// Community Meetings
+export const saveCommunityMeeting = (data: any) => addData('community_meetings', data);
+export const getCommunityMeetings = () => getData('community_meetings');
+export const updateCommunityMeeting = (id: string, data: any) => updateData('community_meetings', id, data);
+export const deleteCommunityMeeting = (id: string) => deleteData('community_meetings', id);
 
 // New Feature: Complete Tenure
 export const completeAmbassadorTenure = async (id: string) => {
@@ -387,6 +395,7 @@ export const completeAmbassadorTenure = async (id: string) => {
 
 export const saveJobInterest = (data: any) => addData('job_interests', data);
 export const getJobInterests = () => getData('job_interests');
+export const deleteJobInterest = (id: string) => deleteData('job_interests', id);
 
 export const saveEcosystemApplication = (data: any) => addData('ecosystem_applications', data);
 export const getEcosystemApplications = () => getData('ecosystem_applications');
@@ -478,10 +487,6 @@ export const createInstructor = async (instructorData: any, pass: string) => {
 };
 
 export const getInstructors = () => getData('instructors');
-
-export const saveEmployer = (data: any) => addData('employers', data);
-export const getEmployers = () => getData('employers');
-export const deleteEmployer = (id: string) => deleteData('employers', id);
 
 export const saveCommunityMember = (data: any) => addData('community_members', data);
 export const getCommunityMembers = () => getData('community_members');

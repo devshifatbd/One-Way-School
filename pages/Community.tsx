@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { Award, ArrowRight, Coins, Download, ShieldCheck, CheckCircle, Search, Zap, Target, Gift, UserCheck, Megaphone } from 'lucide-react';
+import { Award, ArrowRight, Coins, Download, ShieldCheck, CheckCircle, Search, Zap, Target, Gift, UserCheck, Megaphone, Lock } from 'lucide-react';
 import { User, Affiliate } from '../types';
-import { saveAffiliate, getUserApplications, getCommunityMemberByPhone, signInWithGoogle, loginAnonymously, auth } from '../services/firebase';
+import { saveAffiliate, getUserApplications, getCommunityMemberByPhone, signInWithGoogle, auth } from '../services/firebase';
 import { useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -43,6 +44,12 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
     const handleVerifyMember = async (e: React.FormEvent) => {
         e.preventDefault();
         
+        // --- 1. Enforce Login for Security ---
+        if (!user) {
+            setVerifyError("নিরাপত্তার স্বার্থে সার্টিফিকেট যাচাই করার জন্য লগইন প্রয়োজন।");
+            return;
+        }
+
         // Normalize input: remove ALL non-digit characters
         let phoneInput = searchPhone.replace(/[^0-9]/g, ''); 
         
@@ -62,16 +69,6 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
         setVerifiedMember(null);
 
         try {
-            // AUTO-LOGIN: If user is not logged in, sign them in anonymously
-            // This satisfies Firebase rules (if rules allow read for auth users)
-            if (!auth.currentUser) {
-                try {
-                    await loginAnonymously();
-                } catch (loginError) {
-                    console.warn("Anonymous login failed, proceeding anyway...", loginError);
-                }
-            }
-
             const member = await getCommunityMemberByPhone(phoneInput);
 
             if(member) {
@@ -82,7 +79,7 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
         } catch(e: any) {
             console.error("Verification Error:", e);
             if (e.code === 'permission-denied' || e.message?.includes('permission')) {
-                setVerifyError("ডাটাবেস এক্সেস সমস্যা। অনুগ্রহ করে পেইজটি রিফ্রেশ দিয়ে আবার চেষ্টা করুন। (Firestore Rules Check Required)");
+                setVerifyError("ডাটাবেস এক্সেস সমস্যা। অনুগ্রহ করে পেইজটি রিফ্রেশ দিয়ে আবার চেষ্টা করুন।");
             } else {
                 setVerifyError("যাচাইকরণে সমস্যা হয়েছে। ইন্টারনেট কানেকশন চেক করুন।");
             }
@@ -101,18 +98,34 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
             issueDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         });
 
-        // Wait for render
+        // Wait for render and images to load
         setTimeout(async () => {
-            if (certificateRef.current) {
+            const element = certificateRef.current;
+            if (element) {
                 try {
-                    const canvas = await html2canvas(certificateRef.current, {
-                        scale: 2, 
-                        useCORS: true,
-                        logging: false,
+                    // Pre-load check to ensure images are ready
+                    const images = Array.from(element.getElementsByTagName('img'));
+                    await Promise.all(images.map((img: HTMLImageElement) => {
+                        if (img.complete) return Promise.resolve();
+                        return new Promise<void>((resolve) => {
+                            img.onload = () => resolve();
+                            img.onerror = () => resolve(); // Continue even if one image fails
+                        });
+                    }));
+
+                    const canvas = await html2canvas(element, {
+                        scale: 2, // High resolution
+                        useCORS: true, // Needed for external images
+                        allowTaint: false, 
                         backgroundColor: '#ffffff',
                         width: 1123,
                         height: 794,
-                        allowTaint: true
+                        logging: false,
+                        // Avoid scroll issues
+                        scrollX: 0,
+                        scrollY: 0,
+                        windowWidth: 1123,
+                        windowHeight: 794
                     });
 
                     const imgData = canvas.toDataURL('image/png');
@@ -124,10 +137,12 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
 
                     pdf.addImage(imgData, 'PNG', 0, 0, 1123, 794);
                     pdf.save(`OWS_Certificate_${verifiedMember.name}.pdf`);
-                } catch (e) {
-                    console.error(e);
-                    alert("সার্টিফিকেট জেনারেট করতে সমস্যা হয়েছে।");
+                } catch (e: any) {
+                    console.error("Certificate Gen Error:", e);
+                    alert("সার্টিফিকেট ডাউনলোড করতে সমস্যা হয়েছে। দয়া করে আবার চেষ্টা করুন।");
                 }
+            } else {
+                alert("টেমপ্লেট লোড হয়নি। দয়া করে পেজ রিফ্রেশ দিন।");
             }
             setCertLoading(false);
             setPreviewMember(null); // Clean up
@@ -136,14 +151,15 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
 
     const handleQuickJoin = async (type: 'Affiliate' | 'Campus Ambassador') => {
         if (!user) {
-            alert("অনুগ্রহ করে প্রথমে লগইন করুন।");
+            alert("আবেদন করার জন্য অনুগ্রহ করে প্রথমে লগইন করুন।");
             return;
         }
 
         if (window.confirm(`আপনি কি নিশ্চিতভাবে ${type} প্রোগ্রামে জয়েন করতে চান?`)) {
             try {
+                // Ensure all fields are defined to prevent undefined error
                 const data: Affiliate = {
-                    name: user.displayName || 'Unknown',
+                    name: user.displayName || 'Unknown User',
                     phone: user.phone || 'N/A',
                     email: user.email || 'N/A',
                     institution: user.institution || '',
@@ -155,11 +171,15 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                     balance: 0,
                     totalEarnings: 0
                 };
+                
                 await saveAffiliate(data);
-                alert("আপনার আবেদন সফলভাবে জমা হয়েছে! এডমিন শীঘ্রই যোগাযোগ করবে।");
+                
+                alert("আপনার আবেদন সফলভাবে জমা হয়েছে! ড্যাশবোর্ডে স্ট্যাটাস দেখুন।");
                 setExistingAffiliate(data);
+                navigate('/dashboard'); // Redirect to dashboard
             } catch (error) {
-                alert("Something went wrong");
+                console.error(error);
+                alert("আবেদন জমা দিতে সমস্যা হয়েছে। আবার চেষ্টা করুন।");
             }
         }
     };
@@ -170,12 +190,12 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
         if (member.category && !simpleCategories.includes(member.category)) {
             return (
                 <div className="flex flex-col items-center">
-                    <span className="text-[#1e3a8a] font-bold text-3xl">{member.role}</span>
-                    <span className="text-lg text-slate-500 font-normal uppercase tracking-wider mt-2">{member.category}</span>
+                    <span className="text-[#1E3A8A] font-bold text-xl">{member.role}</span>
+                    <span className="text-sm text-slate-500 font-medium uppercase tracking-wider mt-1">{member.category}</span>
                 </div>
             );
         }
-        return <span className="text-[#1e3a8a] font-bold text-3xl">{member.role}</span>;
+        return <span className="text-[#1E3A8A] font-bold text-xl">{member.role}</span>;
     };
 
     return (
@@ -211,7 +231,7 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                                 </div>
                                 <h2 className="text-3xl md:text-4xl font-bold mb-4">আপনার সার্টিফিকেট সংগ্রহ করুন</h2>
                                 <p className="text-slate-400 mb-8 leading-relaxed">
-                                    আপনি যদি আমাদের রেজিস্টার্ড মেম্বার বা ভলান্টিয়ার হয়ে থাকেন, তবে পাশের বক্সে আপনার মোবাইল নম্বর দিন। লগইন করার প্রয়োজন নেই।
+                                    আপনি যদি আমাদের রেজিস্টার্ড মেম্বার বা ভলান্টিয়ার হয়ে থাকেন, তবে পাশের বক্সে আপনার মোবাইল নম্বর দিন।
                                 </p>
                             </div>
 
@@ -223,50 +243,66 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
                                     <Search className="text-blue-600"/> মেম্বার যাচাই করুন
                                 </h3>
 
-                                <form onSubmit={handleVerifyMember} className="space-y-4">
-                                    <div className="relative">
-                                        <input 
-                                            required 
-                                            type="text" 
-                                            placeholder="মোবাইল নম্বর (017...)" 
-                                            value={searchPhone} 
-                                            onChange={e => {setSearchPhone(e.target.value); setVerifyError(''); setVerifiedMember(null);}}
-                                            className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-mono text-lg transition-all"
-                                        />
+                                {/* Authentication Check Block */}
+                                {!user ? (
+                                    <div className="text-center py-6 bg-slate-50 rounded-xl border border-slate-200">
+                                        <div className="w-12 h-12 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                                            <Lock size={24}/>
+                                        </div>
+                                        <p className="text-slate-600 text-sm mb-4 px-4">সার্টিফিকেট যাচাই করতে লগইন প্রয়োজন।</p>
                                         <button 
-                                            type="submit"
-                                            disabled={verifyLoading}
-                                            className="absolute right-2 top-2 bottom-2 bg-slate-900 text-white px-4 rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+                                            onClick={() => signInWithGoogle()} 
+                                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 transition"
                                         >
-                                            {verifyLoading ? '...' : 'Verify'}
+                                            লগইন করুন
                                         </button>
                                     </div>
-                                    
-                                    {verifyError && <p className="text-red-500 text-sm flex items-center gap-1 animate-pulse font-bold bg-red-50 p-2 rounded-lg"><ShieldCheck size={14}/> {verifyError}</p>}
-
-                                    {/* Success Result */}
-                                    {verifiedMember && (
-                                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 animate-fade-in-up">
-                                            <div className="flex items-start gap-3">
-                                                <div className="bg-green-100 p-2 rounded-full text-green-600"><UserCheck size={20}/></div>
-                                                <div>
-                                                    <p className="text-xs text-green-600 font-bold uppercase tracking-wider">মেম্বার ভেরিফাইড</p>
-                                                    <h4 className="font-bold text-slate-800 text-lg">{verifiedMember.name}</h4>
-                                                    <p className="text-sm text-slate-600">{verifiedMember.role} {verifiedMember.category ? `(${verifiedMember.category})` : ''}</p>
-                                                </div>
-                                            </div>
-                                            
+                                ) : (
+                                    <form onSubmit={handleVerifyMember} className="space-y-4">
+                                        <div className="relative">
+                                            <input 
+                                                required 
+                                                type="text" 
+                                                placeholder="মোবাইল নম্বর (017...)" 
+                                                value={searchPhone} 
+                                                onChange={e => {setSearchPhone(e.target.value); setVerifyError(''); setVerifiedMember(null);}}
+                                                className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 font-mono text-lg transition-all"
+                                            />
                                             <button 
-                                                onClick={generateCertificate}
-                                                disabled={certLoading}
-                                                type="button"
-                                                className="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                                                type="submit"
+                                                disabled={verifyLoading}
+                                                className="absolute right-2 top-2 bottom-2 bg-slate-900 text-white px-4 rounded-lg font-bold text-sm hover:bg-blue-600 transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
                                             >
-                                                {certLoading ? 'জেনারেট হচ্ছে...' : <><Download size={18}/> সার্টিফিকেট ডাউনলোড</>}
+                                                {verifyLoading ? '...' : 'Verify'}
                                             </button>
                                         </div>
-                                    )}
-                                </form>
+                                        
+                                        {verifyError && <p className="text-red-500 text-sm flex items-center gap-1 animate-pulse font-bold bg-red-50 p-2 rounded-lg"><ShieldCheck size={14}/> {verifyError}</p>}
+
+                                        {/* Success Result */}
+                                        {verifiedMember && (
+                                            <div className="bg-green-50 border border-green-200 rounded-xl p-4 animate-fade-in-up">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="bg-green-100 p-2 rounded-full text-green-600"><UserCheck size={20}/></div>
+                                                    <div>
+                                                        <p className="text-xs text-green-600 font-bold uppercase tracking-wider">মেম্বার ভেরিফাইড</p>
+                                                        <h4 className="font-bold text-slate-800 text-lg">{verifiedMember.name}</h4>
+                                                        <p className="text-sm text-slate-600">{verifiedMember.role} {verifiedMember.category ? `(${verifiedMember.category})` : ''}</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <button 
+                                                    onClick={generateCertificate}
+                                                    disabled={certLoading}
+                                                    type="button"
+                                                    className="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-all shadow-lg shadow-green-200 flex items-center justify-center gap-2"
+                                                >
+                                                    {certLoading ? 'জেনারেট হচ্ছে...' : <><Download size={18}/> সার্টিফিকেট ডাউনলোড</>}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </form>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -274,86 +310,74 @@ const Community: React.FC<CommunityProps> = ({ user }) => {
             </section>
 
             {/* HIDDEN CERTIFICATE TEMPLATE */}
-            {/* Adjusted layout for watermark and spacing */}
-            <div style={{ position: 'absolute', top: -9999, left: -9999 }}>
+            <div style={{ position: 'fixed', top: 0, left: '-9999px', width: '1123px', height: '794px', zIndex: -100 }}>
                 {previewMember && (
-                    <div ref={certificateRef} className="w-[1123px] h-[794px] relative bg-white overflow-hidden text-slate-900 font-['Hind_Siliguri'] flex flex-col justify-between">
-                        {/* --- Background Elements --- */}
-                        <div className="absolute inset-0 bg-white z-0"></div>
-                        <div className="absolute inset-0 opacity-[0.03] z-0" style={{ backgroundImage: 'radial-gradient(#444 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                        <div className="absolute inset-6 border-[8px] border-[#1e3a8a] z-10"></div>
-                        <div className="absolute inset-9 border-[2px] border-[#DAA520] z-10"></div>
-                        
-                        {/* --- Watermark (Center Logo Shadow - More Visible) --- */}
-                        <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none">
-                             <img src="https://iili.io/f3k62rG.md.png" className="w-[600px] h-auto opacity-[0.06] grayscale blur-[0.5px]" alt="Watermark" />
-                        </div>
-
-                        {/* --- Header Section (Top Space Increased for Logo Safety) --- */}
-                        <div className="relative z-20 w-full flex flex-col items-center pt-16 px-20 text-center">
-                            <img src="https://iili.io/f3k62rG.md.png" alt="Logo" className="h-24 object-contain mb-2" />
-
-                            <h1 className="text-6xl font-serif font-bold text-[#1e3a8a] tracking-wide mb-2 uppercase" style={{ fontFamily: 'Playfair Display, serif' }}>
-                                Certificate of Recognition
-                            </h1>
-                            <p className="text-2xl text-[#DAA520] font-medium tracking-[0.4em] uppercase">
-                                Official Membership
-                            </p>
-                        </div>
-
-                        {/* --- Middle Section (Name) --- */}
-                        <div className="relative z-20 w-full flex flex-col items-center justify-center text-center px-24 -mt-2">
-                            <p className="text-2xl text-slate-500 font-serif italic mb-2">This certificate is proudly presented to</p>
-
-                            <div className="w-full max-w-5xl border-b-2 border-slate-300 pb-2 mb-6">
-                                <h2 className="text-7xl font-bold text-slate-900 capitalize leading-tight" style={{ fontFamily: 'Hind Siliguri, sans-serif' }}>
-                                    {previewMember.nameForCert}
-                                </h2>
-                            </div>
-
-                            <p className="text-2xl text-slate-600 leading-relaxed max-w-5xl font-light">
-                                For successfully securing a verified position as a <span className="font-bold text-[#1e3a8a]">Community Member</span> at 
-                                One Way School. We recognize your dedication towards personal development, leadership, and community service.
-                            </p>
-                        </div>
-
-                        {/* --- Info Grid --- */}
-                        <div className="relative z-20 flex justify-center gap-16 w-full px-20 items-start mb-6">
-                            <div className="text-center">
-                                <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-1">Membership ID</p>
-                                <p className="text-2xl font-mono font-bold text-slate-800">OWS-{previewMember.id ? previewMember.id.slice(0,6).toUpperCase() : 'N/A'}</p>
-                            </div>
-                            <div className="text-center border-l border-r border-slate-200 px-16 min-w-[300px]">
-                                <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-2">Role / Position</p>
-                                <div>
-                                    {getDisplayRole(previewMember)}
+                    <div ref={certificateRef} className="w-[1123px] h-[794px] relative bg-white text-slate-900 font-['Hind_Siliguri'] box-border p-6">
+                        <div className="w-full h-full border-[10px] border-[#1E3A8A] p-1 box-border">
+                            <div className="w-full h-full border-[2px] border-[#EA580C] p-3 box-border">
+                                <div className="w-full h-full border border-[#1E3A8A]/20 relative flex flex-col justify-between py-10 px-16 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-50/50 to-white">
+                                    <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none opacity-[0.03]">
+                                        <img src="https://iili.io/f3k62rG.md.png" className="w-[500px] h-auto grayscale blur-[0.5px]" alt="Watermark" crossOrigin="anonymous" />
+                                    </div>
+                                    <div className="relative z-20 flex flex-col justify-between h-full">
+                                        <div className="w-full flex flex-col items-center text-center mt-4">
+                                            <img src="https://iili.io/f3k62rG.md.png" alt="Logo" className="h-20 object-contain mb-6" crossOrigin="anonymous" />
+                                            <h1 className="text-5xl font-bold text-[#1E3A8A] uppercase tracking-wide" style={{ fontFamily: 'Poppins, sans-serif' }}>
+                                                Certificate of Recognition
+                                            </h1>
+                                        </div>
+                                        <div className="w-full flex flex-col items-center justify-center text-center">
+                                            <p className="text-xl text-slate-500 font-serif italic mb-1">This certificate is proudly presented to</p>
+                                            <div className="w-full max-w-4xl relative">
+                                                <h2 className="text-6xl font-bold text-slate-900 capitalize leading-tight mb-6" style={{ fontFamily: 'Hind Siliguri, sans-serif' }}>
+                                                    {previewMember.nameForCert}
+                                                </h2>
+                                            </div>
+                                            <p className="text-lg text-slate-600 leading-relaxed max-w-4xl font-light text-center px-10">
+                                                For successfully verified membership and valuable contribution as a <span className="font-bold text-[#EA580C]">Community Member</span> at 
+                                                One Way School. We appreciate your dedication towards personal development and community service.
+                                            </p>
+                                        </div>
+                                        <div className="flex justify-center gap-16 w-full items-center mb-4">
+                                            <div className="text-center w-40">
+                                                <p className="text-[#1E3A8A] text-xs uppercase tracking-wider font-bold mb-1">Membership ID</p>
+                                                <p className="text-lg font-mono font-bold text-slate-800">OWS-{previewMember.id ? previewMember.id.slice(0,6).toUpperCase() : 'N/A'}</p>
+                                            </div>
+                                            <div className="w-[1px] h-10 bg-[#1E3A8A]/30"></div>
+                                            <div className="text-center min-w-[200px]">
+                                                <p className="text-[#1E3A8A] text-xs uppercase tracking-wider font-bold mb-1">Role / Position</p>
+                                                <div>
+                                                    {getDisplayRole(previewMember)}
+                                                </div>
+                                            </div>
+                                            <div className="w-[1px] h-10 bg-[#1E3A8A]/30"></div>
+                                            <div className="text-center w-40">
+                                                <p className="text-[#1E3A8A] text-xs uppercase tracking-wider font-bold mb-1">Issue Date</p>
+                                                <p className="text-lg font-bold text-slate-800">{previewMember.issueDate}</p>
+                                            </div>
+                                        </div>
+                                        <div className="w-full flex justify-between items-end border-t border-[#1E3A8A]/10 pt-6">
+                                            <div className="flex flex-col items-center w-56">
+                                                <img src="https://iili.io/KB8jgte.md.png" alt="Sig" className="h-12 object-contain mb-2 z-10 filter grayscale opacity-90" crossOrigin="anonymous" />
+                                                <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                                <p className="font-bold text-slate-800 text-sm">Sifatur Rahman</p>
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Founder</p>
+                                            </div>
+                                            <div className="flex flex-col items-center w-56">
+                                                <img src="https://iili.io/KB8j4ou.md.png" alt="Sig" className="h-12 object-contain mb-2 z-10 filter grayscale opacity-90" crossOrigin="anonymous" />
+                                                <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                                <p className="font-bold text-slate-800 text-sm">Faria Hoque</p>
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Co-Founder</p>
+                                            </div>
+                                            <div className="flex flex-col items-center w-56">
+                                                <img src="https://iili.io/KTuZeGp.png" alt="Sig" className="h-12 object-contain mb-2 z-10 filter grayscale opacity-90" crossOrigin="anonymous" />
+                                                <div className="w-full h-[1px] bg-slate-400 mb-2"></div>
+                                                <p className="font-bold text-slate-800 text-sm">Dipta Halder</p>
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-wider">Co-Founder</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="text-center">
-                                <p className="text-slate-400 text-sm uppercase tracking-wider font-bold mb-1">Date of Issue</p>
-                                <p className="text-2xl font-bold text-slate-800">{previewMember.issueDate}</p>
-                            </div>
-                        </div>
-
-                        {/* --- Footer / Signatures (Fixed Spacing to prevent overlap) --- */}
-                        <div className="relative z-20 w-full px-28 pb-24 flex justify-between items-end">
-                            <div className="flex flex-col items-center w-64">
-                                <img src="https://iili.io/KB8jgte.md.png" alt="Sig" className="h-16 object-contain mb-4 z-10 filter grayscale brightness-50" />
-                                <div className="w-full h-[2px] bg-slate-300 mb-2"></div>
-                                <p className="font-bold text-slate-800 text-lg">Sifatur Rahman</p>
-                                <p className="text-sm text-slate-500 uppercase tracking-wider">Founder</p>
-                            </div>
-                            <div className="flex flex-col items-center w-64">
-                                <img src="https://iili.io/KB8j4ou.md.png" alt="Sig" className="h-16 object-contain mb-4 z-10 filter grayscale brightness-50" />
-                                <div className="w-full h-[2px] bg-slate-300 mb-2"></div>
-                                <p className="font-bold text-slate-800 text-lg">Faria Hoque</p>
-                                <p className="text-sm text-slate-500 uppercase tracking-wider">Co-Founder</p>
-                            </div>
-                            <div className="flex flex-col items-center w-64">
-                                <img src="https://iili.io/KTuZeGp.png" alt="Sig" className="h-16 object-contain mb-4 z-10 filter grayscale brightness-50" />
-                                <div className="w-full h-[2px] bg-slate-300 mb-2"></div>
-                                <p className="font-bold text-slate-800 text-lg">Dipta Halder</p>
-                                <p className="text-sm text-slate-500 uppercase tracking-wider">Co-Founder</p>
                             </div>
                         </div>
                     </div>

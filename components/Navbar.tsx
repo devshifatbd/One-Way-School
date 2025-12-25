@@ -236,7 +236,7 @@ const Navbar: React.FC<NavbarProps> = ({ user }) => {
                                 {/* Social Buttons (Real Logos) */}
                                 <div className="flex justify-center gap-4 mb-8">
                                     <button onClick={handleGoogleLogin} className="w-14 h-14 rounded-full border border-[#E5E7EB] flex items-center justify-center hover:bg-gray-50 transition-all hover:scale-105 active:scale-95 group bg-white shadow-sm">
-                                        <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-6 h-6" alt="Google"/>
+                                        <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" className="w-6 h-6" alt="Google"/>
                                     </button>
                                     <button onClick={handleFacebookLogin} className="w-14 h-14 rounded-full border border-[#E5E7EB] flex items-center justify-center hover:bg-gray-50 transition-all hover:scale-105 active:scale-95 group bg-white shadow-sm">
                                         <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" className="w-6 h-6" alt="Facebook"/>

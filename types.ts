@@ -7,10 +7,24 @@ export interface User {
     role?: 'super_admin' | 'admin' | 'moderator' | 'instructor' | 'student' | 'user'; 
     phone?: string;
     whatsapp?: string; 
-    profession?: string; 
+    
+    // Professional Details
+    profession?: 'Student' | 'Job Holder' | 'Unemployed' | 'Business'; 
     currentAddress?: string; 
     bio?: string;
+    
+    // If Student
     institution?: string;
+    department?: string;
+    studentClass?: string; // Semester/Year
+
+    // If Job Holder
+    companyName?: string;
+    designation?: string;
+
+    // If Unemployed
+    goal?: string;
+
     address?: string;
     linkedin?: string;
     portfolio?: string;
@@ -18,16 +32,7 @@ export interface User {
     createdAt?: any;
     lastLogin?: any;
     deviceInfo?: any;
-}
-
-export interface AuditLog {
-    id?: string;
-    action: string; // e.g., "Deleted Invoice", "Approved Student"
-    performedBy: string; // Admin Name
-    performedByEmail: string;
-    targetId?: string; // ID of the item affected
-    details: string;
-    timestamp: any;
+    emailVerified?: boolean; // New Field
 }
 
 export interface Job {
@@ -214,6 +219,7 @@ export interface Affiliate {
     assignedTask?: string;
     meetingLink?: string;
     startDate?: any;
+    role?: string;
 }
 
 export interface WithdrawalRequest {
@@ -237,6 +243,19 @@ export interface AmbassadorTask {
     type: 'Social Share' | 'Event' | 'Content' | 'Other';
     status: 'Active' | 'Closed';
     createdAt: any;
+    assignedTo?: string; 
+    link?: string;
+}
+
+export interface CommunityMeeting {
+    id?: string;
+    title: string;
+    date: string;
+    time: string;
+    platform: 'Google Meet' | 'Zoom' | 'Offline';
+    link: string;
+    assignedTo: string;
+    createdAt?: any;
 }
 
 export interface Instructor {
@@ -247,40 +266,4 @@ export interface Instructor {
     specialty?: string;
     salary?: number; 
     createdAt: any;
-}
-
-// Detailed Employer Interface (HR) - Flexible
-export interface Employer {
-    id?: string;
-    name: string;        
-    mobile?: string;
-    email?: string;
-    dob?: string;
-    permanentAddress?: string;
-    currentAddress?: string;
-    nid?: string;
-    imageUrl?: string;
-    designation?: string;
-    salary?: number;
-    joiningDate?: string;
-    status?: 'Active' | 'Inactive';
-    createdAt?: any;
-    lastPaidMonth?: string;
-    documents?: string[]; // Links to docs
-}
-
-// Financial Record Interface
-export interface FinancialRecord {
-    id?: string;
-    type: 'Income' | 'Expense';
-    category: 'Course Fee' | 'Affiliate Payout' | 'Salary' | 'Marketing' | 'Office Rent' | 'Utility' | 'Software' | 'Misc';
-    amount: number;
-    date: any;
-    description: string;
-    paymentMethod: 'Cash' | 'Bank Transfer' | 'Bkash' | 'Nagad' | 'Cheque';
-    accountName?: string; 
-    authorizedBy?: string; // Who created the record
-    designation?: string;  // Their position
-    relatedUserId?: string; 
-    invoiceId?: string;
 }
