@@ -1,106 +1,226 @@
 rules_version = '2';
+
 service cloud.firestore {
+
   match /databases/{database}/documents {
+
     
-    // ১. এডমিন চেক ফাংশন (admin@ows.com যুক্ত করা হয়েছে)
+
+    // ১. এডমিন চেক ফাংশন
+
     function isAdmin() {
+
       return request.auth != null && 
+
              (request.auth.token.email == 'onewayschool.bd@gmail.com' || 
+
               request.auth.token.email == 'onewayschool.bd@gamil.com' ||
+
               request.auth.token.email == 'admin@ows.com');
+
     }
+
+
 
     // ২. ইউজার প্রোফাইল
+
     match /users/{userId} {
+
       allow read, write: if request.auth != null && request.auth.uid == userId;
+
       allow read, write: if isAdmin();
+
     }
+
+
 
     // ৩. মেম্বার ডাটাবেস (সার্টিফিকেট চেকের জন্য পাবলিক রিড)
+
     match /community_members/{memberId} {
+
       allow read: if true; 
+
       allow write: if isAdmin();
+
     }
+
+
 
     // ৪. পাবলিক কন্টেন্ট (জব, ব্লগ, কোর্স, ইন্সট্রাক্টর)
+
     match /jobs/{jobId} { allow read: if true; allow write: if isAdmin(); }
+
     match /blogs/{blogId} { allow read: if true; allow write: if isAdmin(); }
+
     match /courses/{courseId} { allow read: if true; allow write: if isAdmin(); }
+
     match /instructors/{docId} { allow read: if true; allow write: if isAdmin(); }
 
+
+
     // ৫. অ্যাপ্লিকেশন ও ফরম সাবমিশন
+
     match /leads/{leadId} {
+
       allow create: if true;
+
       allow read, update, delete: if isAdmin();
+
     }
+
     
+
     match /affiliates/{affiliateId} {
+
       allow create: if request.auth != null;
+
       allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+
       allow update, delete: if isAdmin();
+
     }
+
+
 
     match /ecosystem_applications/{appId} {
+
       allow create: if request.auth != null;
+
       allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+
       allow update: if isAdmin();
+
     }
+
+
 
     match /job_interests/{docId} {
+
       allow create: if request.auth != null;
+
       allow read: if isAdmin();
+
     }
+
     
+
     match /withdrawals/{withId} {
+
       allow create: if request.auth != null;
+
+      allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
+
+      allow update: if isAdmin();
+
+    }
+
+
+
+    // ৬. ক্লাস রুটিন (স্টুডেন্টরা দেখবে, এডমিন এডিট করবে)
+
+    match /class_sessions/{sessionId} {
+
+      allow read: if request.auth != null;
+
+      allow write: if isAdmin();
+
+    }
+
+
+
+    // ৭. নোটিশ বোর্ড এবং হিস্ট্রি
+
+    match /notice_history/{noticeId} {
+
+      allow read, write: if isAdmin();
+
+    }
+
+
+
+    // ৮. রিসোর্স এবং সিভি
+
+    match /resources/{resourceId} {
+
+      allow read: if request.auth != null;
+
+      allow write: if isAdmin();
+
+    }
+
+
+
+    // ৯. ফাইন্যান্সিয়াল রেকর্ডস
+
+    match /financial_records/{recordId} {
+
+      allow read, write: if isAdmin();
+
+    }
+
+
+
+    // ১০. এমপ্লয়ার/এইচআর ডাটা
+
+    match /employers/{employerId} {
+
+      allow read, write: if isAdmin();
+
+    }
+
+
+
+    // ১১. অডিট লগস
+
+    match /audit_logs/{logId} {
+
+      allow read, write: if isAdmin();
+
+    }
+
+
+
+    // ১২. এম্বাসেডর টাস্ক (মেম্বাররা দেখবে, এডমিন এডিট করবে)
+
+    match /ambassador_tasks/{taskId} {
+
+      allow read: if request.auth != null;
+
+      allow write: if isAdmin();
+
+    }
+
+
+
+    // ১৩. কমিউনিটি মিটিং (মেম্বাররা দেখবে, এডমিন এডিট করবে)
+
+    match /community_meetings/{meetingId} {
+
+      allow read: if request.auth != null;
+
+      allow write: if isAdmin();
+
+    }
+
+    // ১৪. ওয়ার্কশপ ও সেমিনার (সবাই দেখবে, এডমিন এডিট করবে)
+    match /workshops/{workshopId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ১৫. বড় ইভেন্টসমূহ (সবাই দেখবে, এডমিন এডিট করবে)
+    match /major_events/{eventId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ১৬. ইভেন্ট ও ওয়ার্কশপ রেজিস্ট্রেশন (সবাই রেজিস্ট্রেশন করতে পারবে)
+    match /event_registrations/{regId} {
+      allow create: if true; // Public access for guest registration
       allow read: if isAdmin() || (request.auth != null && resource.data.userId == request.auth.uid);
       allow update: if isAdmin();
     }
 
-    // --- নতুন কালেকশনগুলোর পারমিশন (যা মিসিং ছিল) ---
+  } 
 
-    // ৬. ক্লাস রুটিন (এডমিন সেভ করবে, স্টুডেন্টরা দেখবে)
-    match /class_sessions/{sessionId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-    }
-
-    // ৭. নোটিশ বোর্ড এবং হিস্ট্রি
-    match /notice_history/{noticeId} {
-      allow read, write: if isAdmin();
-    }
-
-    // ৮. রিসোর্স এবং সিভি
-    match /resources/{resourceId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-    }
-
-    // ৯. ফাইন্যান্সিয়াল রেকর্ডস
-    match /financial_records/{recordId} {
-      allow read, write: if isAdmin();
-    }
-
-    // ১০. এমপ্লয়ার/এইচআর ডাটা
-    match /employers/{employerId} {
-      allow read, write: if isAdmin();
-    }
-
-    // ১১. অডিট লগস
-    match /audit_logs/{logId} {
-      allow read, write: if isAdmin();
-    }
-
-    // ১২. এম্বাসেডর টাস্ক (NEW ADDED)
-    match /ambassador_tasks/{taskId} {
-      allow read: if request.auth != null; // মেম্বাররা টাস্ক দেখতে পারবে
-      allow write: if isAdmin(); // শুধু এডমিন টাস্ক অ্যাড/ডিলিট করতে পারবে
-    }
-
-    // ১৩. কমিউনিটি মিটিং (NEW ADDED)
-    match /community_meetings/{meetingId} {
-      allow read: if request.auth != null; // মেম্বাররা মিটিং শিডিউল দেখতে পারবে
-      allow write: if isAdmin(); // শুধু এডমিন মিটিং অ্যাড/ডিলিট করতে পারবে
-    }
-  }
 }

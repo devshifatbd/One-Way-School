@@ -32,6 +32,7 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { uploadFileToDrive } from './googleDriveService';
 
 // Configuration
 const firebaseConfig = {
@@ -48,12 +49,14 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Standard Google Provider (No special Drive scopes needed for Apps Script method)
 const googleProvider = new GoogleAuthProvider();
 const facebookProvider = new FacebookAuthProvider();
 
 const ADMIN_EMAILS = ['onewayschool.bd@gmail.com', 'onewayschool.bd@gamil.com', 'admin@ows.com'];
 
-// Helper function to sort by createdAt descending (Client-side)
+// Helper to sort by createdAt descending (Client-side)
 const sortByDateDesc = (a: any, b: any) => {
     // Handle Firestore Timestamp or JS Date
     const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : (a.createdAt instanceof Date ? a.createdAt.getTime() : 0);
@@ -158,19 +161,22 @@ export const updateUserProfile = async (uid: string, data: any) => {
     }
 };
 
+// MODIFIED: Upload Image to Google Drive using Apps Script Service
 export const uploadProfileImage = async (file: File, uid: string) => {
     try {
-        const storageRef = ref(storage, `profile_images/${uid}`);
-        await uploadBytes(storageRef, file);
-        const downloadURL = await getDownloadURL(storageRef);
+        // Upload using Apps Script Web App
+        const driveUrl = await uploadFileToDrive(file);
         
+        // Update Profiles in Firebase Auth and Firestore
         if (auth.currentUser) {
-            await updateProfile(auth.currentUser, { photoURL: downloadURL });
+            await updateProfile(auth.currentUser, { photoURL: driveUrl });
         }
-        await updateUserProfile(uid, { photoURL: downloadURL });
-        return downloadURL;
+        await updateUserProfile(uid, { photoURL: driveUrl });
+        
+        return driveUrl;
+
     } catch (error) {
-        console.error("Error uploading image:", error);
+        console.error("Error uploading image to Drive:", error);
         throw error;
     }
 };
@@ -209,7 +215,7 @@ export const getUserJobInterests = async (uid: string) => {
     }
 }
 
-// Auth Functions
+// Auth Functions (Simplified - No Drive Scopes)
 export const signInWithGoogle = async () => {
     try {
         const result = await signInWithPopup(auth, googleProvider);
@@ -342,6 +348,44 @@ export const deleteData = async (collectionName: string, id: string) => {
         throw error;
     }
 }
+
+// --- WORKSHOP & EVENT FUNCTIONS ---
+export const saveWorkshop = (data: any) => addData('workshops', data);
+export const getWorkshops = () => getData('workshops');
+export const updateWorkshop = (id: string, data: any) => updateData('workshops', id, data);
+export const deleteWorkshop = (id: string) => deleteData('workshops', id);
+
+export const saveMajorEvent = (data: any) => addData('major_events', data);
+export const getMajorEvents = () => getData('major_events');
+export const updateMajorEvent = (id: string, data: any) => updateData('major_events', id, data);
+export const deleteMajorEvent = (id: string) => deleteData('major_events', id);
+
+// --- REGISTRATION FUNCTIONS ---
+export const saveEventRegistration = (data: any) => addData('event_registrations', data);
+export const getEventRegistrations = async (eventId: string) => {
+    try {
+        const q = query(collection(db, 'event_registrations'), where('eventId', '==', eventId));
+        const snap = await getDocs(q);
+        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return data.sort(sortByDateDesc);
+    } catch (e) {
+        console.error(e);
+        return [];
+    }
+};
+export const getUserRegistrations = async (userId: string) => {
+    try {
+        const q = query(collection(db, 'event_registrations'), where('userId', '==', userId));
+        const snap = await getDocs(q);
+        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort(sortByDateDesc);
+    } catch(e) { return []; }
+};
+export const updateRegistrationStatus = async (id: string, status: string, code?: string) => {
+    const update: any = { status };
+    if(code) update.ticketCode = code;
+    return updateData('event_registrations', id, update);
+};
+
 
 // --- SPECIFIC EXPORTS ---
 export const saveLead = (data: any) => addData('leads', data);

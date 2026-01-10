@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
     ArrowRight, Star, Zap, CheckCircle2, Users, Sparkles, Code2, 
     Globe, Briefcase, TrendingUp, Target, CheckCircle, Quote, 
     DollarSign, Award, Gift, UserCircle, Calendar, BookOpen, 
-    Building2, Banknote, MapPin, ExternalLink, ArrowUpRight, Clock
+    Building2, Banknote, MapPin, ExternalLink, ArrowUpRight, Clock,
+    ChevronRight
 } from 'lucide-react';
 import { User, Job, BlogPost } from '../types';
 import { getJobs, getBlogPosts } from '../services/firebase';
@@ -65,9 +67,14 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                 <div className="container mx-auto px-4 md:px-6 relative z-10">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div className="text-center lg:text-left order-2 lg:order-1">
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-blue-200 mb-8 animate-fade-in-up">
-                                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                <span className="text-sm font-medium tracking-wide">বাংলাদেশের সেরা ক্যারিয়ার প্লাটফর্ম</span>
+                            {/* Creative Hero Label */}
+                            <div className="inline-block relative group mb-8 animate-fade-in-up">
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+                                <div className="relative px-6 py-2.5 bg-slate-900 rounded-full leading-none flex items-center">
+                                    <span className="text-blue-100 font-medium tracking-wide text-sm md:text-base">
+                                        বাংলাদেশে এই প্রথম <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 font-bold">ট্যালেন্ট ম্যাচম্যাকিং প্লাটফর্ম</span>
+                                    </span>
+                                </div>
                             </div>
                             
                             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
@@ -81,7 +88,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                             
                             <div className="flex flex-col sm:flex-row gap-5 justify-center lg:justify-start">
                                 <button onClick={() => scrollToSection('program')} className="group bg-white text-slate-900 px-8 py-3.5 rounded-full font-bold text-base md:text-lg hover:bg-blue-50 transition-all shadow-lg flex items-center justify-center gap-2">
-                                    আমাদের প্রোগ্রাম 
+                                    ইকোসিস্টেম 
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </button>
                                 <button onClick={() => navigate('/community')} className="px-8 py-3.5 rounded-full font-bold text-base md:text-lg text-white border border-white/30 hover:bg-white/10 backdrop-blur-sm transition-all flex items-center justify-center gap-2 group">
@@ -112,7 +119,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                     </div>
                                     <div>
                                         <h5 className="text-white font-bold text-sm">কমিউনিটি</h5>
-                                        <p className="text-slate-300 text-[10px]">৫০০+ মেম্বার</p>
+                                        <p className="text-slate-300 text-[10px]">৩০,০০০+ মেম্বার</p>
                                     </div>
                                 </div>
 
@@ -159,7 +166,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                             <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-violet-600 rounded-3xl rotate-2 opacity-20 group-hover:rotate-6 transition-transform duration-500"></div>
                             <div className="bg-white p-6 md:p-10 rounded-3xl shadow-xl border border-slate-100 relative z-10">
                                 <div className="inline-block bg-red-100 text-red-600 px-3 py-1 rounded-full text-xs md:text-sm font-bold mb-4 md:mb-6">বর্তমান সংকট (Paradox)</div>
-                                <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-4 md:mb-6">কেন এই দূরত্ব?</h3>
+                                <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-4 md:mb-6">বর্তমানে আমরা এক অদ্ভুত প্রতিবন্ধকতার সম্মুখীন হচ্ছি</h3>
                                 
                                 <div className="space-y-4 md:space-y-6">
                                     <div className="flex gap-4">
@@ -298,7 +305,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
 
                             <div className="md:pl-12">
                                 <div className="bg-white p-5 md:p-6 rounded-2xl shadow-lg border border-slate-100 transform hover:scale-105 transition duration-300">
-                                    <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Learning" className="w-full h-40 md:h-48 object-cover rounded-xl mb-4" />
+                                    <img src="https://vizvaconsultancyservices.com/wp-content/uploads/2024/07/1-2-scaled.webp" alt="Learning" className="w-full h-40 md:h-48 object-cover rounded-xl mb-4" />
                                     <p className="text-xs md:text-sm text-slate-500 italic">"শিখুন তাদের কাছ থেকে, যারা ইন্ডাস্ট্রিতে সেরা।"</p>
                                 </div>
                             </div>
@@ -308,7 +315,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                         <div className="relative md:grid md:grid-cols-2 gap-8 md:gap-12 items-center mt-12 md:mt-24 pl-12 md:pl-0">
                             <div className="order-2 md:order-1 md:pr-12">
                                 <div className="bg-white p-5 md:p-6 rounded-2xl shadow-lg border border-slate-100 transform hover:scale-105 transition duration-300">
-                                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Internship" className="w-full h-40 md:h-48 object-cover rounded-xl mb-4" />
+                                    <img src="https://www.corporateclassinc.com/wp-content/uploads/2022/03/group-brainstorm-workshop-leadership-skills-development-for-individuals-2500-1667-2048x1366.jpeg" alt="Internship" className="w-full h-40 md:h-48 object-cover rounded-xl mb-4" />
                                     <p className="text-xs md:text-sm text-slate-500 italic">"বাস্তব অভিজ্ঞতা, নিশ্চিত ক্যারিয়ার।"</p>
                                 </div>
                             </div>
@@ -358,7 +365,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                 </div>
                                 <h3 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">গ্যারান্টেড ইন্টার্নশিপ & জব সাপোর্ট</h3>
                                 <p className="text-blue-100 mb-6 text-sm md:text-lg leading-relaxed">
-                                    কোর্স শেষে বসে থাকা নয়। আমরা নিশ্চিত করি ১ মাসের ইন্টার্নশিপ। অফলাইন ইন্টার্নশিপে থাকছে সম্মানী। এরপর পার্টনার কোম্পানিতে চাকরির সুযোগ।
+                                    লার্নিং ফেজ শেষে বসে থাকা নয়। আমরা নিশ্চিত করি ১ মাসের ইন্টার্নশিপ। অফলাইন ইন্টার্নশিপে থাকছে সম্মানী। এরপর পার্টনার কোম্পানিতে চাকরির সুযোগ।
                                 </p>
                                 <div className="flex gap-3 flex-wrap">
                                     <span className="px-3 py-1.5 md:px-4 md:py-2 bg-white/20 rounded-full text-xs md:text-sm font-medium backdrop-blur-sm">অফলাইন ইন্টার্নশিপ</span>
@@ -385,10 +392,10 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                 
                                 <div className="space-y-3 md:space-y-4 flex-grow">
                                     <div className="flex items-center gap-3 md:gap-4 bg-white/10 p-3 rounded-xl border border-white/10 backdrop-blur-sm hover:bg-white/20 transition-colors cursor-default">
-                                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 flex items-center justify-center shrink-0 shadow-lg text-base md:text-lg">🎁</div>
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/20 flex items-center justify-center shrink-0 shadow-lg text-2xl md:text-3xl">🎁</div>
                                         <div>
                                             <strong className="block text-white text-base md:text-lg">ওয়েলকাম কিট</strong>
-                                            <span className="text-[10px] md:text-xs text-pink-100 opacity-80">ব্র্যান্ডেড টি-শার্ট, নোটবুক ও কলম</span>
+                                            <span className="text-[10px] md:text-xs text-pink-100 opacity-90 block mt-1">ব্র্যান্ডেড টি-শার্ট, ব্যাগ, নোটবুক ও কলম</span>
                                         </div>
                                     </div>
                                     
@@ -446,7 +453,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                 </div>
             </section>
 
-            {/* Affiliate & Campus Ambassador Section (Updated) */}
+            {/* Affiliate & Campus Ambassador Section */}
             <section id="affiliate" className="py-16 md:py-24 relative overflow-hidden bg-gradient-to-br from-slate-900 to-blue-900 text-white">
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20 pointer-events-none">
                     <div className="absolute -top-20 -left-20 w-60 md:w-96 h-60 md:h-96 bg-blue-500 rounded-full blur-3xl animate-float"></div>
@@ -582,75 +589,72 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                 </div>
             </section>
 
-             {/* Recent Jobs Section - Updated Design */}
-            <section className="py-20 md:py-32 bg-slate-50 relative overflow-hidden">
+             {/* Recent Jobs Section - Redesigned */}
+            <section className="py-20 md:py-24 bg-slate-50 relative overflow-hidden">
                 <div className="container mx-auto px-4 md:px-6 relative z-10">
-                    <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+                    <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
                         <div className="text-left max-w-2xl">
-                            <span className="text-blue-600 font-bold tracking-wider text-sm uppercase mb-2 block">Career Opportunities</span>
-                            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4 leading-tight">
-                                সাম্প্রতিক <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">চাকরি</span>
+                            <span className="text-blue-600 font-bold tracking-wider text-sm uppercase mb-2 block">Opportunity Awaits</span>
+                            <h2 className="text-4xl md:text-6xl font-bold text-slate-900 mb-4 leading-tight">
+                                এক্সক্লুসিভ <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-600">জব অফার</span>
                             </h2>
-                            <p className="text-slate-600 text-lg">সেরা কোম্পানিগুলোতে আপনার দক্ষতা অনুযায়ী পছন্দের চাকরিটি বেছে নিন।</p>
+                            <p className="text-slate-600 text-lg">শুধুমাত্র আমাদের স্কিলড মেম্বারদের জন্য কিউরেটেড চাকরির সুযোগ।</p>
                         </div>
-                        <Link to="/jobs" className="group flex items-center gap-3 bg-white border border-slate-200 text-slate-700 font-bold px-6 py-3 rounded-full hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm hover:shadow-lg">
+                        <Link to="/jobs" className="group flex items-center gap-3 bg-slate-900 text-white font-bold px-8 py-4 rounded-full hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20 hover:scale-105">
                             সব চাকরি দেখুন <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform"/>
                         </Link>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-8">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
                         {recentJobs.length > 0 ? recentJobs.map((job) => (
-                            <div key={job.id} className="group relative bg-white rounded-3xl p-1 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur"></div>
-                                <div className="relative bg-white rounded-[1.4rem] p-6 h-full flex flex-col border border-slate-100 group-hover:border-transparent">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex gap-4">
-                                            <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-xl font-bold text-slate-700 shadow-inner group-hover:bg-gradient-to-br group-hover:from-blue-500 group-hover:to-purple-600 group-hover:text-white transition-all duration-300">
-                                                {job.company.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <h3 className="text-lg font-bold text-slate-900 line-clamp-1 group-hover:text-blue-600 transition-colors">{job.title}</h3>
-                                                <p className="text-sm text-slate-500 font-medium">{job.company}</p>
-                                            </div>
+                            <div key={job.id} className="group bg-white rounded-xl border border-slate-200 p-5 hover:border-blue-500 hover:shadow-lg transition-all duration-300 flex flex-col justify-between h-full relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-blue-50 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                
+                                <div>
+                                    <div className="flex justify-between items-start mb-4 relative z-10">
+                                        <div className="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-xl font-bold text-slate-600 shadow-sm">
+                                            {job.company.charAt(0)}
                                         </div>
-                                        <div className="bg-slate-50 p-2 rounded-full text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all transform group-hover:-rotate-45 duration-300">
-                                            <ArrowRight size={18}/>
-                                        </div>
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${job.employmentStatus === 'Full-time' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-purple-50 text-purple-600 border-purple-100'}`}>
+                                            {job.employmentStatus}
+                                        </span>
                                     </div>
+                                    
+                                    <h3 className="font-bold text-lg text-slate-900 mb-1 line-clamp-1 group-hover:text-blue-600 transition-colors relative z-10">{job.title}</h3>
+                                    <p className="text-sm text-slate-500 font-medium mb-5 flex items-center gap-1.5"><Building2 size={14}/> {job.company}</p>
 
-                                    <div className="flex flex-wrap gap-2 mb-6">
-                                        <span className="px-3 py-1 bg-slate-50 rounded-lg text-xs font-bold text-slate-600 border border-slate-100 group-hover:border-blue-100 transition-colors flex items-center gap-1.5">
-                                            <Briefcase size={12} className="text-blue-500"/> {job.employmentStatus}
-                                        </span>
-                                        <span className="px-3 py-1 bg-slate-50 rounded-lg text-xs font-bold text-slate-600 border border-slate-100 group-hover:border-purple-100 transition-colors flex items-center gap-1.5">
-                                            <MapPin size={12} className="text-purple-500"/> {job.location}
-                                        </span>
-                                        <span className="px-3 py-1 bg-slate-50 rounded-lg text-xs font-bold text-slate-600 border border-slate-100 group-hover:border-green-100 transition-colors flex items-center gap-1.5">
-                                            <Banknote size={12} className="text-green-500"/> {job.salary}
-                                        </span>
-                                    </div>
-
-                                    <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                                            <p className="text-xs font-bold text-slate-500">Deadline: <span className="text-slate-700">{job.deadline}</span></p>
+                                    <div className="flex flex-wrap gap-2 mb-5">
+                                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                                            <MapPin size={14} className="text-slate-400"/> {job.location}
                                         </div>
-                                        <Link to="/jobs" className="text-xs font-bold text-blue-600 hover:underline">বিস্তারিত</Link>
+                                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                                            <Banknote size={14} className="text-slate-400"/> {job.salary}
+                                        </div>
                                     </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-slate-100 flex items-center justify-between relative z-10">
+                                     <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold bg-slate-50 px-2 py-1 rounded">
+                                        <Clock size={12}/> Deadline: <span className="text-red-500">{job.deadline || 'N/A'}</span>
+                                     </div>
+                                     <Link to="/jobs" className="text-sm font-bold text-white bg-slate-900 hover:bg-blue-600 px-4 py-2 rounded-lg flex items-center gap-1 transition-colors shadow-sm">
+                                        Apply Now <ArrowRight size={14}/>
+                                     </Link>
                                 </div>
                             </div>
                         )) : (
-                            <div className="col-span-2 py-20 text-center">
-                                <div className="inline-block p-4 rounded-full bg-slate-100 mb-4 animate-pulse"><Briefcase className="text-slate-400" size={32} /></div>
-                                <p className="text-slate-500">আপডেট করা হচ্ছে...</p>
+                            <div className="col-span-2 py-24 text-center">
+                                <div className="inline-block p-6 rounded-full bg-slate-100 mb-6"><Briefcase className="text-slate-400" size={40} /></div>
+                                <h3 className="text-xl font-bold text-slate-700">নতুন চাকরির খোঁজ চলছে...</h3>
+                                <p className="text-slate-500 mt-2">শিগগিরই আপডেট করা হবে।</p>
                             </div>
                         )}
                     </div>
                 </div>
             </section>
 
-            {/* Latest Blog Section (Kept as it pairs well with dynamic content) */}
-            <section className="py-20 md:py-32 bg-white relative">
+            {/* Latest Blog Section - Clean Design */}
+            <section className="py-20 md:py-24 bg-white relative">
                 <div className="container mx-auto px-4 md:px-6 relative z-10">
                     <div className="text-center max-w-3xl mx-auto mb-16">
                         <span className="text-purple-600 font-bold tracking-wider text-sm uppercase mb-2 block">Knowledge Hub</span>
@@ -662,12 +666,17 @@ const Home: React.FC<HomeProps> = ({ user }) => {
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {recentBlogs.length > 0 ? recentBlogs.map((blog) => (
-                            <div key={blog.id} className="group bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-                                <div className="relative h-64 overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity"></div>
-                                    <img src={blog.imageUrl} alt={blog.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
-                                    
-                                    <div className="absolute top-4 left-4 z-20">
+                            <div key={blog.id} className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full group">
+                                <div className="relative h-56 overflow-hidden bg-slate-100">
+                                    <img 
+                                        src={blog.imageUrl} 
+                                        alt={blog.title} 
+                                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800';
+                                        }}
+                                    />
+                                    <div className="absolute top-4 left-4">
                                         <span className="bg-white/90 backdrop-blur-md text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
                                             <Calendar size={12} className="text-purple-500"/> 
                                             {blog.date ? new Date(blog.date.seconds * 1000).toLocaleDateString() : 'Recent'}
@@ -675,29 +684,29 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                                     </div>
                                 </div>
                                 
-                                <div className="p-8">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+                                <div className="p-6 flex flex-col flex-grow">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <div className="w-6 h-6 rounded-full bg-purple-50 flex items-center justify-center text-purple-600 text-xs font-bold">
                                             {blog.author.charAt(0)}
                                         </div>
-                                        <span className="text-sm font-medium text-slate-500">{blog.author}</span>
+                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{blog.author}</span>
                                     </div>
                                     
-                                    <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 leading-tight group-hover:text-purple-600 transition-colors">
+                                    <h3 className="text-lg font-bold text-slate-900 mb-3 line-clamp-2 leading-tight group-hover:text-purple-600 transition-colors">
                                         {blog.title}
                                     </h3>
-                                    <p className="text-slate-500 text-sm mb-6 line-clamp-3 leading-relaxed">
+                                    <p className="text-slate-500 text-sm mb-6 line-clamp-3 leading-relaxed flex-grow">
                                         {blog.excerpt}
                                     </p>
                                     
-                                    <Link to="/blog" className="inline-flex items-center gap-2 text-slate-900 font-bold group-hover:text-purple-600 transition-colors relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-0.5 after:bg-purple-600 after:transition-all after:duration-300 group-hover:after:w-full">
-                                        পড়তে থাকুন <ArrowUpRight size={18} />
+                                    <Link to="/blog" className="inline-flex items-center gap-2 text-slate-900 font-bold text-sm group-hover:text-purple-600 transition-colors mt-auto">
+                                        পড়তে থাকুন <ArrowRight size={16} />
                                     </Link>
                                 </div>
                             </div>
                         )) : (
                             <div className="col-span-3 py-20 text-center">
-                                <div className="inline-block p-4 rounded-full bg-slate-50 mb-4 animate-pulse"><BookOpen className="text-slate-300" size={32} /></div>
+                                <div className="inline-block p-4 rounded-full bg-slate-50 mb-4"><BookOpen className="text-slate-300" size={32} /></div>
                                 <p className="text-slate-400">আপডেট করা হচ্ছে...</p>
                             </div>
                         )}
@@ -711,7 +720,7 @@ const Home: React.FC<HomeProps> = ({ user }) => {
                 </div>
             </section>
 
-            {/* Photo Gallery Marquee - Keeping Original React Implementation */}
+            {/* Photo Gallery Marquee - Updated Images */}
             <section className="py-20 bg-slate-900 overflow-hidden">
                 <div className="container mx-auto px-4 mb-10 text-center">
                      <h2 className="text-3xl font-bold text-white mb-2">আমাদের গ্যালারি</h2>

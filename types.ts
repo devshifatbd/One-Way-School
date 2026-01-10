@@ -32,7 +32,7 @@ export interface User {
     createdAt?: any;
     lastLogin?: any;
     deviceInfo?: any;
-    emailVerified?: boolean; // New Field
+    emailVerified?: boolean;
 }
 
 export interface Job {
@@ -91,6 +91,80 @@ export interface ClassSession {
     createdAt?: any;
 }
 
+// New Type for Workshop/Seminar Management
+export interface Workshop {
+    id?: string;
+    title: string;
+    category: 'Workshop' | 'Seminar';
+    description: string;
+    type: 'Online' | 'Offline';
+    imageUrl: string;
+    date: string;
+    time: string;
+    location?: string; // Meeting link or Venue
+    feeType: 'Free' | 'Paid';
+    fee?: number;
+    status: 'Upcoming' | 'Completed';
+    createdAt: any;
+}
+
+// New Type for Major Events
+export interface MajorEvent {
+    id?: string;
+    title: string;
+    description: string;
+    type: 'Offline' | 'Online';
+    imageUrl: string;
+    date: string;
+    time: string;
+    location: string;
+    fee: number; // 0 for free
+    
+    // Optional Dynamic Fields
+    guests?: { name: string; designation: string; imageUrl?: string; type: 'Guest' | 'Speaker' }[];
+    sponsors?: { name: string; logoUrl?: string }[];
+    rewards?: string[]; // List of rewards
+    schedule?: { time: string; activity: string }[];
+    
+    createdAt: any;
+}
+
+// Unified Registration Type for Workshops & Events
+export interface EventRegistration {
+    id?: string;
+    eventId: string; // ID of the Workshop or MajorEvent
+    eventType: 'Workshop' | 'Event';
+    eventTitle: string;
+    eventDate: string;
+    
+    // User Info
+    userId: string;
+    name: string;
+    phone: string;
+    email: string;
+    photoURL?: string;
+    
+    // Profession Logic
+    profession: 'Student' | 'Job Holder' | 'Unemployed';
+    details: {
+        institution?: string;
+        semester?: string;
+        department?: string;
+        company?: string;
+        position?: string;
+        goal?: string;
+    };
+
+    // Payment
+    paymentMethod?: 'Bkash' | 'Nagad';
+    transactionId?: string;
+    amountPaid?: number;
+
+    status: 'pending' | 'approved' | 'declined' | 'completed'; // Completed means attended/certificate eligible
+    ticketCode?: string; // Generated on approval
+    createdAt: any;
+}
+
 export interface EcosystemApplication {
     id?: string;
     name: string;
@@ -98,28 +172,20 @@ export interface EcosystemApplication {
     email: string;
     photoURL?: string;
     institution?: string;
-    
     transactionId: string;
     paymentMethod: 'Bkash' | 'Nagad';
     paymentDetails?: string;
     status: 'pending' | 'approved' | 'rejected';
     createdAt: any;
     userId: string;
-    
-    // LMS Features
     batch?: string;
     studentId?: string; 
     joinDate?: any;
     currentPhase: 'Learning' | 'Assessment' | 'Internship'; 
     currentModule?: number;
-    
     notices?: EcosystemNotice[];
-    
-    // Payment Tracking
     totalPaid?: number; 
     dueAmount?: number; 
-    
-    // Performance
     scores: {
         sales: number;
         communication: number;
@@ -128,14 +194,8 @@ export interface EcosystemApplication {
         attendance: number;
         assignment: number;
     };
-    
-    // Attendance: Key = Date (YYYY-MM-DD), Value = Status
     attendanceRecord?: Record<string, 'Present' | 'Absent' | 'Late'>;
-
-    // Logistics
     kitStatus: 'Pending' | 'Processing' | 'Shipped' | 'Delivered';
-    
-    // Internship
     assignedInternship?: {
         companyName: string;
         role: string;
@@ -144,11 +204,8 @@ export interface EcosystemApplication {
         stipend?: string;
         status: 'Selected' | 'Ongoing' | 'Completed';
     };
-    
-    // CV & Resources
     cvRequestStatus?: 'None' | 'Requested' | 'Processing' | 'Completed';
     cvLink?: string; 
-
     remarks?: string;
 }
 
@@ -160,7 +217,9 @@ export interface CommunityMember {
     category?: string; 
     role: string; 
     createdAt?: any;
-    userId?: string; 
+    userId?: string;
+    imageUrl?: string;
+    photoURL?: string;
 }
 
 export interface BlogPost {
@@ -211,8 +270,6 @@ export interface Affiliate {
     totalEarnings: number;
     referralCode?: string;   
     referralCount?: number;
-    
-    // Ambassador Specifics
     department?: string;
     currentPoints?: number;
     tasksCompleted?: number;

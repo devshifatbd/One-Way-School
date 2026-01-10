@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, MapPin, Briefcase, Filter, CheckSquare, Square, ChevronDown, ExternalLink, Lock, Eye, Building2, Banknote, Calendar, X } from 'lucide-react';
 import { Job, User } from '../types';
 import { getJobs, saveJobInterest } from '../services/firebase';
+import { useOutletContext } from 'react-router-dom';
 
 interface JobPortalProps {
     user: User | null;
@@ -23,6 +25,9 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
     
     // Mobile Filter State
     const [isFilterOpen, setIsFilterOpen] = useState(false);
+    
+    // Login Modal Context
+    const { openLoginModal } = useOutletContext<{ openLoginModal: () => void }>() || { openLoginModal: () => {} };
     
     // Constants for Filtering
     const DIVISIONS = ['Dhaka', 'Chattogram', 'Rajshahi', 'Khulna', 'Barishal', 'Sylhet', 'Rangpur', 'Mymensingh'];
@@ -94,7 +99,7 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
     const handleViewDetails = async (e: React.MouseEvent, job: Job) => {
         e.stopPropagation(); 
         if (!user) {
-            alert("বিস্তারিত দেখতে এবং আবেদন করতে অনুগ্রহ করে লগইন করুন।");
+            openLoginModal();
             return;
         }
         if(!job.id) return;
@@ -321,7 +326,7 @@ const JobPortal: React.FC<JobPortalProps> = ({ user }) => {
                                         {!user ? (
                                             <div className="text-center">
                                                 <p className="text-slate-500 mb-3 text-sm">আবেদন প্রক্রিয়া দেখতে অনুগ্রহ করে লগইন করুন</p>
-                                                <button disabled className="bg-slate-200 text-slate-400 px-8 py-3 rounded-full font-bold cursor-not-allowed flex items-center gap-2"><Lock size={18} /> View Apply Details</button>
+                                                <button onClick={openLoginModal} className="bg-slate-200 hover:bg-slate-300 text-slate-600 px-8 py-3 rounded-full font-bold transition-all flex items-center gap-2"><Lock size={18} /> View Apply Details</button>
                                             </div>
                                         ) : revealedJobs.includes(job.id!) ? (
                                             <div className="text-center animate-fade-in w-full max-w-md">

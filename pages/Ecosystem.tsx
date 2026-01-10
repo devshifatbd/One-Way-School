@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
-import { ArrowRight, CheckCircle, Briefcase, Users, MessageCircle, Heart, Star, Lock, Chrome, Target, Gift, FileText, Check, ChevronDown, X, Zap, Brain, TrendingUp, ShieldCheck, AlertTriangle, SearchX, TrendingDown, AlertCircle, User as UserIcon } from 'lucide-react';
-import { saveEcosystemApplication, signInWithGoogle } from '../services/firebase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
+import { ArrowRight, CheckCircle, Briefcase, Users, MessageCircle, Star, Lock, Target, Gift, FileText, Check, ChevronDown, X, Zap, Brain, TrendingUp, ShieldCheck, AlertTriangle, SearchX, TrendingDown, AlertCircle, User as UserIcon, CheckCircle2, Layout } from 'lucide-react';
+import { saveEcosystemApplication } from '../services/firebase';
 import { User } from '../types';
 
 interface EcosystemProps {
@@ -10,20 +11,21 @@ interface EcosystemProps {
 
 const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [paymentData, setPaymentData] = useState({ transactionId: '', paymentMethod: 'Bkash' });
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
-    const [activeModule, setActiveModule] = useState<number | null>(1);
+    const [expandedModule, setExpandedModule] = useState<number | null>(null);
+
+    // Login Modal Context
+    const { openLoginModal } = useOutletContext<{ openLoginModal: () => void }>() || { openLoginModal: () => {} };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMsg('');
         
-        if(!user) {
-            setErrorMsg("আবেদন করার জন্য প্রথমে লগইন করুন।");
-            return;
-        }
+        if(!user) return;
 
         if(!paymentData.transactionId) {
             setErrorMsg("অনুগ্রহ করে ট্রানজেকশন আইডি দিন।");
@@ -56,11 +58,11 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
         setLoading(false);
     };
 
-    const handleGoogleLogin = async () => {
-        try { await signInWithGoogle(); } catch (error) { console.error(error); }
+    const handleLoginClick = () => {
+        setIsModalOpen(false); // Close registration modal
+        openLoginModal(); // Open login modal
     };
 
-    // Dark Psychology & High Value Curriculum
     const modules = [
         {
             id: 1,
@@ -69,6 +71,7 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
             icon: <Brain size={24} />,
             color: "text-rose-600",
             bg: "bg-rose-50",
+            border: "border-rose-200",
             price: "২,০০০/-",
             details: [
                 "আসল খেলা: কেন মানুষ কিনে? (Buying Motives)",
@@ -87,6 +90,7 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
             icon: <MessageCircle size={24} />,
             color: "text-purple-600",
             bg: "bg-purple-50",
+            border: "border-purple-200",
             price: "২,০০০/-",
             details: [
                 "স্টোরিটেলিং আর্কিটেকচার: গল্প দিয়ে ব্রেইন ওয়াশ করার মেথড",
@@ -105,6 +109,7 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
             icon: <Users size={24} />,
             color: "text-blue-600",
             bg: "bg-blue-50",
+            border: "border-blue-200",
             price: "২,০০০/-",
             details: [
                 "নেটওয়ার্কিং এর ডার্ক সিক্রেট: বড় লিডারদের সাথে কানেক্ট হওয়ার উপায়",
@@ -123,6 +128,7 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
             icon: <Target size={24} />,
             color: "text-emerald-600",
             bg: "bg-emerald-50",
+            border: "border-emerald-200",
             price: "২,০০০/-",
             details: [
                 "কর্পোরেট পলিটিক্স সার্ভাইভাল গাইড: অফিসের শত্রু চেনার উপায়",
@@ -148,15 +154,12 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
                         <Star size={16} className="text-yellow-400 fill-yellow-400" />
                         <span>প্রিমিয়াম ক্যারিয়ার বুটক্যাম্প</span>
                     </div>
-                    
                     <h1 className="text-4xl md:text-7xl font-bold mb-8 leading-tight tracking-tight">
                         Ecosystem <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">Pro</span>
                     </h1>
-                    
                     <p className="text-lg md:text-2xl text-slate-300 max-w-3xl mx-auto font-light leading-relaxed mb-12">
                         মাত্র ৪ মাসে নিজেকে কর্পোরেট জগতের জন্য <span className="text-white font-semibold">অপ্রতিরোধ্য</span> করে তুলুন। থিওরি নয়, আমরা শিখাই যা ইন্ডাস্ট্রিতে সরাসরি কাজে লাগে।
                     </p>
-                    
                     <button 
                         onClick={() => setIsModalOpen(true)} 
                         className="group relative px-8 py-4 bg-blue-600 text-white font-bold rounded-full text-lg shadow-lg hover:bg-blue-700 hover:shadow-blue-500/30 transition-all transform hover:-translate-y-1 overflow-hidden inline-flex items-center gap-2"
@@ -166,253 +169,119 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
                 </div>
             </section>
 
-            {/* REALITY CHECK & STATISTICS (DARK PSYCHOLOGY) */}
+            {/* Reality Check Stats */}
             <section className="py-20 bg-white relative">
-                <div className="container mx-auto px-4 md:px-6">
-                    <div className="text-center mb-16">
-                        <span className="inline-flex items-center gap-2 text-red-600 font-bold bg-red-50 px-4 py-1 rounded-full text-sm mb-4 animate-pulse border border-red-100">
-                            <AlertTriangle size={16} /> Reality Check
-                        </span>
-                        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-6">
-                            বাংলাদেশের <span className="text-red-600">বেকারত্বের</span> রূঢ় বাস্তবতা
-                        </h2>
-                        <p className="text-slate-600 text-lg max-w-3xl mx-auto">
-                            পরিসংখ্যান বলছে, সার্টিফিকেট এখন আর চাকরির নিশ্চয়তা দেয় না। সমস্যাটা কোথায়?
-                        </p>
-                    </div>
-
-                    {/* Stats Grid */}
-                    <div className="grid md:grid-cols-3 gap-6 mb-16 max-w-6xl mx-auto">
-                        <div className="bg-red-50 p-8 rounded-3xl border border-red-100 text-center transform hover:scale-105 transition-transform duration-300">
-                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
-                                <TrendingDown size={32} />
+                <div className="container mx-auto px-4 md:px-6 text-center">
+                    <span className="inline-flex items-center gap-2 text-red-600 font-bold bg-red-50 px-4 py-1 rounded-full text-sm mb-4 border border-red-100">
+                        <AlertTriangle size={16} /> Reality Check
+                    </span>
+                    <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-12">
+                        বাংলাদেশের <span className="text-red-600">বেকারত্বের</span> রূঢ় বাস্তবতা
+                    </h2>
+                    
+                    <div className="grid md:grid-cols-3 gap-8">
+                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-lg transition-all group">
+                            <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center text-red-600 mb-4 group-hover:scale-110 transition-transform">
+                                <SearchX size={32}/>
                             </div>
-                            <h3 className="text-4xl font-bold text-red-600 mb-2">৪৭%</h3>
-                            <p className="font-bold text-slate-800 text-lg mb-2">শিক্ষিত বেকার</p>
-                            <p className="text-sm text-slate-600">BIDS এর রিপোর্ট অনুযায়ী, বাংলাদেশের প্রায় অর্ধেক গ্র্যাজুয়েটই বেকার।</p>
+                            <h3 className="text-4xl font-bold text-slate-800 mb-2">৪৭%</h3>
+                            <p className="text-slate-600 font-medium">শিক্ষিত গ্র্যাজুয়েট বেকার</p>
                         </div>
-                        <div className="bg-orange-50 p-8 rounded-3xl border border-orange-100 text-center transform hover:scale-105 transition-transform duration-300">
-                            <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-600">
-                                <SearchX size={32} />
+                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-lg transition-all group">
+                            <div className="w-16 h-16 mx-auto bg-orange-100 rounded-full flex items-center justify-center text-orange-600 mb-4 group-hover:scale-110 transition-transform">
+                                <TrendingDown size={32}/>
                             </div>
-                            <h3 className="text-4xl font-bold text-orange-600 mb-2">৬৯%</h3>
-                            <p className="font-bold text-slate-800 text-lg mb-2">কোম্পানি লোক পায় না</p>
-                            <p className="text-sm text-slate-600">নিয়োগকর্তারা বলছেন, তারা স্কিলড লোক খুঁজছেন কিন্তু পাচ্ছেন না।</p>
+                            <h3 className="text-4xl font-bold text-slate-800 mb-2">৮ লক্ষ+</h3>
+                            <p className="text-slate-600 font-medium">প্রতি বছর নতুন চাকরিপ্রার্থী</p>
                         </div>
-                        <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 text-center transform hover:scale-105 transition-transform duration-300">
-                            <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-600">
-                                <AlertCircle size={32} />
+                        <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 hover:shadow-lg transition-all group">
+                            <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-4 group-hover:scale-110 transition-transform">
+                                <ShieldCheck size={32}/>
                             </div>
-                            <h3 className="text-4xl font-bold text-slate-700 mb-2">০%</h3>
-                            <p className="font-bold text-slate-800 text-lg mb-2">স্কিল গ্যারান্টি</p>
-                            <p className="text-sm text-slate-600">ইউনিভার্সিটি ডিগ্রি থিওরি শেখায়, কিন্তু জব মার্কেটের প্র্যাক্টিক্যাল স্কিল শেখায় না।</p>
-                        </div>
-                    </div>
-
-                    {/* Case Studies: The Problem */}
-                    <div className="grid lg:grid-cols-2 gap-10 max-w-6xl mx-auto items-center">
-                        {/* Realistic Case Study - Updated */}
-                        <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8 md:p-10 rounded-3xl shadow-2xl relative overflow-hidden group border border-slate-700">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl group-hover:bg-red-600/20 transition-colors pointer-events-none"></div>
-                            
-                            <div className="relative z-10">
-                                <div className="flex justify-between items-start mb-6">
-                                    <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">REAL STORY</span>
-                                    <span className="text-slate-400 text-xs">ঢাকা, বাংলাদেশ</span>
-                                </div>
-
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center border-2 border-red-500/50">
-                                        <UserIcon size={32} className="text-slate-400"/>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold text-white">আসিফ ইকবাল</h3>
-                                        <p className="text-slate-400 text-sm">B.Sc in CSE (CGPA 3.85)</p>
-                                        <p className="text-red-400 text-xs font-bold mt-1">৮ মাস ধরে বেকার</p>
-                                    </div>
-                                </div>
-                                
-                                <div className="space-y-4 mb-6 bg-white/5 p-4 rounded-xl border border-white/10">
-                                    <div className="flex gap-3">
-                                        <div className="w-1.5 h-1.5 mt-2 rounded-full bg-red-500 shrink-0"></div>
-                                        <p className="text-slate-300 text-sm leading-relaxed italic">
-                                            "আমি ভেবেছিলাম ভালো সিজিপিএ থাকলেই চাকরি নিশ্চিত। গত ৮ মাসে <strong className="text-white">১২০+ কোম্পানিতে সিভি ড্রপ করেছি</strong>। মাত্র ৫টি জায়গা থেকে ডাক পেয়েছি, কিন্তু ভাইবা বোর্ডে নার্ভাসনেসের কারণে বাদ পড়েছি।"
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/20">
-                                    <h4 className="font-bold text-red-400 mb-3 text-sm uppercase tracking-wide flex items-center gap-2">
-                                        <AlertTriangle size={16}/> কেন চাকরি হচ্ছে না?
-                                    </h4>
-                                    <ul className="grid grid-cols-1 gap-2 text-sm text-slate-300">
-                                        <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> টেকনিক্যাল স্কিল আছে, কিন্তু <span className="text-white font-bold">কমিউনিকেশন</span> জিরো।</li>
-                                        <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> সিভি দেখতে প্রফেশনাল না (ATS Friendly না)।</li>
-                                        <li className="flex items-center gap-2"><X size={14} className="text-red-500"/> লিংকডইন প্রোফাইল অপ্টিমাইজড না।</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl border border-slate-200 relative group">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-green-500 rounded-[2rem] opacity-20 blur transition duration-500 group-hover:opacity-40"></div>
-                             <div className="relative z-10">
-                                <h3 className="text-2xl font-bold mb-6 flex items-center gap-3 text-slate-800">
-                                    <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded">SOLUTION</span>
-                                    কোম্পানি কী চায়?
-                                </h3>
-                                <p className="text-slate-600 mb-6 text-sm leading-relaxed">
-                                    ১০০ জন সিইও-র সাথে কথা বলে জানা গেছে, তারা ফ্রেশারদের মধ্যে টেকনিক্যাল নলেজের চেয়ে এই <strong>৪টি কোর স্কিল</strong> বেশি খোঁজেন। কারণ কাজ শেখানো যায়, কিন্তু এটিটিউড শেখানো কঠিন।
-                                </p>
-
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                                        <div className="bg-blue-600 text-white p-2 rounded-lg"><Briefcase size={18}/></div>
-                                        <div>
-                                            <h4 className="font-bold text-slate-800 text-sm">Sales & Negotiation</h4>
-                                            <p className="text-xs text-slate-500">আইডিয়া বা প্রোডাক্ট কনভেন্স করার ক্ষমতা।</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 p-3 bg-purple-50 rounded-xl border border-purple-100">
-                                        <div className="bg-purple-600 text-white p-2 rounded-lg"><MessageCircle size={18}/></div>
-                                        <div>
-                                            <h4 className="font-bold text-slate-800 text-sm">Communication</h4>
-                                            <p className="text-xs text-slate-500">স্পষ্টভাবে মনের ভাব প্রকাশ ও প্রেজেন্টেশন।</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 p-3 bg-green-50 rounded-xl border border-green-100">
-                                        <div className="bg-green-600 text-white p-2 rounded-lg"><Users size={18}/></div>
-                                        <div>
-                                            <h4 className="font-bold text-slate-800 text-sm">Networking</h4>
-                                            <p className="text-xs text-slate-500">সঠিক মানুষের সাথে কানেকশন তৈরি।</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-4 p-3 bg-orange-50 rounded-xl border border-orange-100">
-                                        <div className="bg-orange-600 text-white p-2 rounded-lg"><Heart size={18}/></div>
-                                        <div>
-                                            <h4 className="font-bold text-slate-800 text-sm">Emotional Intelligence (EQ)</h4>
-                                            <p className="text-xs text-slate-500">চাপের মুখে মাথা ঠান্ডা রাখা ও টিমওয়ার্ক।</p>
-                                        </div>
-                                    </div>
-                                </div>
-                             </div>
-                        </div>
-                    </div>
-
-                    <div className="text-center mt-12">
-                        <p className="text-lg text-slate-700 font-medium mb-4">আপনি কি সেই ৪৭% বেকারের দলে থাকতে চান, নাকি নিজেকে <span className="text-blue-600 font-bold">টপ ১%</span> এ নিয়ে যেতে চান?</p>
-                        <ChevronDown className="mx-auto text-slate-400 animate-bounce" size={32}/>
-                    </div>
-                </div>
-            </section>
-
-            {/* Talent Matchmaking Ecosystem (Roadmap) - RESTORED */}
-            <section className="py-20 bg-slate-50 relative">
-                <div className="container mx-auto px-4 md:px-6">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4">Talent Matchmaking <span className="text-blue-600">Ecosystem</span></h2>
-                        <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-                            ৪ মাসের একটি কমপ্লিট জার্নি যা আপনাকে কাঁচা মাটি থেকে দক্ষ মানবসম্পদে রূপান্তর করবে
-                        </p>
-                        <div className="h-1 w-24 bg-blue-600 mx-auto rounded-full mt-4"></div>
-                    </div>
-
-                    <div className="max-w-5xl mx-auto relative">
-                        <div className="absolute left-6 md:left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-green-500 md:-translate-x-1/2 opacity-30"></div>
-
-                        {/* Step 1 */}
-                        <div className="relative md:grid md:grid-cols-2 gap-12 items-center mb-16 pl-12 md:pl-0">
-                            <div className="md:text-right md:pr-12 mb-6 md:mb-0">
-                                <div className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold mb-3">প্রথম ৩ মাস</div>
-                                <h3 className="text-2xl font-bold text-slate-800 mb-4">স্কিল ডেভেলপমেন্ট</h3>
-                                <ul className="space-y-2 text-slate-600 md:flex md:flex-col md:items-end">
-                                    <li className="flex items-center gap-2 md:flex-row-reverse"><CheckCircle className="w-5 h-5 text-blue-500 shrink-0" /> অনলাইন ক্লাস ও মেন্টরশিপ</li>
-                                    <li className="flex items-center gap-2 md:flex-row-reverse"><CheckCircle className="w-5 h-5 text-blue-500 shrink-0" /> ৪টি কোর স্কিল ট্রেনিং</li>
-                                    <li className="flex items-center gap-2 md:flex-row-reverse"><CheckCircle className="w-5 h-5 text-blue-500 shrink-0" /> ইন্ডাস্ট্রি এক্সপার্ট সেশন</li>
-                                </ul>
-                            </div>
-                            <div className="absolute left-0 md:left-1/2 top-0 md:top-1/2 md:-translate-y-1/2 md:-translate-x-1/2 w-12 h-12 bg-white border-4 border-blue-500 rounded-full flex items-center justify-center shadow-lg z-10">
-                                <span className="font-bold text-blue-600 text-xl">1</span>
-                            </div>
-                            <div className="md:pl-12">
-                                <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 transform hover:scale-105 transition duration-300">
-                                    <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Learning" className="w-full h-48 object-cover rounded-xl mb-4" />
-                                    <p className="text-sm text-slate-500 italic font-medium text-center">"শিখুন তাদের কাছ থেকে, যারা ইন্ডাস্ট্রিতে সেরা।"</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Step 2 */}
-                        <div className="relative md:grid md:grid-cols-2 gap-12 items-center pl-12 md:pl-0">
-                            <div className="order-2 md:order-1 md:pr-12">
-                                <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 transform hover:scale-105 transition duration-300">
-                                    <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Internship" className="w-full h-48 object-cover rounded-xl mb-4" />
-                                    <p className="text-sm text-slate-500 italic font-medium text-center">"বাস্তব অভিজ্ঞতা, নিশ্চিত ক্যারিয়ার।"</p>
-                                </div>
-                            </div>
-                            <div className="absolute left-0 md:left-1/2 top-0 md:top-1/2 md:-translate-y-1/2 md:-translate-x-1/2 w-12 h-12 bg-white border-4 border-green-500 rounded-full flex items-center justify-center shadow-lg z-10">
-                                <span className="font-bold text-green-600 text-xl">2</span>
-                            </div>
-                            <div className="order-1 md:order-2 md:pl-12 mb-6 md:mb-0">
-                                <div className="inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold mb-3">শেষ ১ মাস</div>
-                                <h3 className="text-2xl font-bold text-slate-800 mb-4">প্র্যাক্টিক্যাল অ্যাপ্লিকেশন</h3>
-                                <ul className="space-y-2 text-slate-600">
-                                    <li className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-green-500 shrink-0" /> ইন্টার্নশিপ (অফলাইন/অনলাইন)</li>
-                                    <li className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-green-500 shrink-0" /> ইন্ডাস্ট্রিয়াল ভিজিট</li>
-                                    <li className="flex items-center gap-2"><CheckCircle className="w-5 h-5 text-green-500 shrink-0" /> জব প্লেসমেন্ট সাপোর্ট</li>
-                                </ul>
-                            </div>
+                            <h3 className="text-4xl font-bold text-slate-800 mb-2">৩০%</h3>
+                            <p className="text-slate-600 font-medium">কোম্পানির দক্ষ লোকবলের অভাব</p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Curriculum - HIGH VALUE PSYCHOLOGY */}
+            {/* Why Ecosystem? (Features) */}
+            <section className="py-20 bg-slate-50">
+                <div className="container mx-auto px-4 md:px-6">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">কেন Ecosystem Pro?</h2>
+                        <p className="text-slate-600 max-w-2xl mx-auto">কারণ গতানুগতিক কোর্স করে সার্টিফিকেট জমানোর দিন শেষ। এখন যুগ দক্ষতার।</p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:-translate-y-2 transition-transform duration-300">
+                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-4"><Zap size={24}/></div>
+                            <h4 className="text-lg font-bold text-slate-800 mb-2">হ্যান্ডস-অন ট্রেনিং</h4>
+                            <p className="text-sm text-slate-500">শুধুমাত্র ভিডিও লেকচার নয়, রিয়েল লাইফ অ্যাসাইনমেন্ট এবং প্র্যাকটিক্যাল টাস্ক।</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:-translate-y-2 transition-transform duration-300">
+                            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mb-4"><Users size={24}/></div>
+                            <h4 className="text-lg font-bold text-slate-800 mb-2">ইন্ডাস্ট্রি মেন্টর</h4>
+                            <p className="text-sm text-slate-500">ক্লাস নিবেন দেশের স্বনামধন্য কোম্পানির এইচআর এবং ডিপার্টমেন্ট হেডরা।</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:-translate-y-2 transition-transform duration-300">
+                            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 mb-4"><Briefcase size={24}/></div>
+                            <h4 className="text-lg font-bold text-slate-800 mb-2">গ্যারান্টেড ইন্টার্নশিপ</h4>
+                            <p className="text-sm text-slate-500">কোর্স শেষে পার্টনার কোম্পানিতে নিশ্চিত ইন্টার্নশিপের সুযোগ।</p>
+                        </div>
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:-translate-y-2 transition-transform duration-300">
+                            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 mb-4"><Layout size={24}/></div>
+                            <h4 className="text-lg font-bold text-slate-800 mb-2">সিভি & পোর্টফোলিও</h4>
+                            <p className="text-sm text-slate-500">প্রফেশনাল সিভি রাইটিং এবং পোর্টফোলিও মেকিং ওয়ার্কশপ।</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Course Modules Section */}
             <section className="py-20 bg-white">
-                <div className="container mx-auto px-4 max-w-5xl">
+                <div className="container mx-auto px-4 md:px-6">
                     <div className="text-center mb-16">
-                        <span className="text-rose-600 font-bold tracking-wider uppercase text-sm mb-2 block animate-pulse">Exclusive Content</span>
-                        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-4">কোর্স কারিকুলাম <span className="text-slate-400 text-lg font-normal">(ভ্যালু ৳২৫,০০০+)</span></h2>
-                        <p className="text-slate-600 text-lg">আমরা গতানুগতিক কিছু শিখাই না। আমরা শিখাই সেই সব সিক্রেট যা টপ ১% প্রফেশনালরা ব্যবহার করে।</p>
+                        <span className="text-blue-600 font-bold uppercase tracking-wider text-sm">Course Curriculum</span>
+                        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mt-2 mb-4">কী শিখবেন আপনি?</h2>
+                        <p className="text-slate-600">৪টি পাওয়ার-প্যাকড মডিউল যা আপনাকে বদলে দিবে</p>
                     </div>
 
-                    <div className="space-y-6">
+                    <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
                         {modules.map((module) => (
                             <div 
-                                key={module.id}
-                                className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${activeModule === module.id ? 'border-blue-500 shadow-xl ring-1 ring-blue-500' : 'border-slate-200 hover:border-blue-300 hover:shadow-lg'}`}
+                                key={module.id} 
+                                className={`rounded-3xl border transition-all duration-300 hover:shadow-xl ${module.bg} ${module.border} overflow-hidden group`}
                             >
-                                <div 
-                                    className={`p-6 flex items-center justify-between cursor-pointer ${activeModule === module.id ? 'bg-slate-50' : 'bg-white'}`}
-                                    onClick={() => setActiveModule(activeModule === module.id ? null : module.id)}
-                                >
-                                    <div className="flex items-center gap-5">
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${module.bg} ${module.color}`}>
-                                            {module.icon}
+                                <div className="p-8 cursor-pointer" onClick={() => setExpandedModule(expandedModule === module.id ? null : module.id)}>
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex gap-4">
+                                            <div className={`w-14 h-14 rounded-2xl bg-white flex items-center justify-center shrink-0 shadow-sm ${module.color}`}>
+                                                {module.icon}
+                                            </div>
+                                            <div>
+                                                <h3 className={`text-xl font-bold mb-1 ${module.color}`}>{module.title}</h3>
+                                                <p className="text-slate-600 text-sm font-medium">{module.subtitle}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-slate-900">{module.title}</h3>
-                                            <p className="text-slate-500 text-sm mt-1 hidden md:block">{module.subtitle}</p>
+                                        <div className={`p-2 rounded-full bg-white/50 transition-transform duration-300 ${expandedModule === module.id ? 'rotate-180' : ''}`}>
+                                            <ChevronDown size={20} className="text-slate-500"/>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold hidden md:inline-block">ফি: {module.price}</span>
-                                        <ChevronDown className={`text-slate-400 transition-transform duration-300 ${activeModule === module.id ? 'rotate-180' : ''}`}/>
-                                    </div>
-                                </div>
-                                
-                                <div className={`transition-all duration-500 ease-in-out ${activeModule === module.id ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                    <div className="p-6 md:p-8 pt-2 border-t border-slate-100 bg-white">
-                                        <p className="md:hidden text-slate-500 text-sm mb-4 italic">{module.subtitle}</p>
-                                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Zap size={18} className="text-yellow-500 fill-yellow-500"/> এই মডিউলে যা যা শিখবেন:</h4>
-                                        <ul className="grid md:grid-cols-2 gap-4">
-                                            {module.details.map((detail, idx) => (
-                                                <li key={idx} className="flex items-start gap-3 text-slate-700 text-sm md:text-base group">
-                                                    <CheckCircle size={18} className="text-green-500 shrink-0 mt-0.5 group-hover:scale-110 transition-transform"/>
-                                                    <span className="group-hover:text-blue-600 transition-colors">{detail}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
+                                    
+                                    <div className={`grid transition-all duration-500 ease-in-out ${expandedModule === module.id ? 'grid-rows-[1fr] opacity-100 mt-6' : 'grid-rows-[0fr] opacity-0'}`}>
+                                        <div className="overflow-hidden">
+                                            <div className="bg-white/60 rounded-2xl p-6 backdrop-blur-sm">
+                                                <ul className="space-y-3">
+                                                    {module.details.map((item, idx) => (
+                                                        <li key={idx} className="flex items-start gap-3 text-sm text-slate-700">
+                                                            <CheckCircle2 size={16} className={`shrink-0 mt-0.5 ${module.color}`}/>
+                                                            <span>{item}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -421,84 +290,45 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
                 </div>
             </section>
 
-             {/* Membership Benefits - RESTORED */}
-            <section className="py-20 bg-slate-50">
-                <div className="container mx-auto px-4 max-w-6xl">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">মেম্বারশিপ বেনিফিট</h2>
-                        <p className="text-slate-600">এক্সক্লুসিভ সুবিধা যা আপনার ক্যারিয়ারকে দেবে ভিন্ন মাত্রা</p>
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-8">
-                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group hover:-translate-y-2 transition-transform">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-6"><Briefcase className="w-6 h-6 text-white" /></div>
-                            <h3 className="text-xl font-bold mb-3">গ্যারান্টেড ইন্টার্নশিপ</h3>
-                            <p className="text-blue-100 text-sm leading-relaxed mb-4">কোর্স শেষে বসে থাকা নয়। আমরা নিশ্চিত করি ১ মাসের ইন্টার্নশিপ। অফলাইন ইন্টার্নশিপে থাকছে সম্মানী এবং চাকরির সুযোগ।</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group hover:-translate-y-2 transition-transform">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-6"><Gift className="w-6 h-6 text-white" /></div>
-                            <h3 className="text-xl font-bold mb-3">এক্সক্লুসিভ গিফট</h3>
-                            <p className="text-purple-100 text-sm leading-relaxed mb-4">মেম্বারদের জন্য ওয়েলকাম কিট (টি-শার্ট, নোটবুক), মেম্বারশিপ কার্ড এবং সকল ইভেন্টে আজীবন বিশেষ ছাড়।</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group hover:-translate-y-2 transition-transform">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
-                            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center mb-6"><FileText className="w-6 h-6 text-white" /></div>
-                            <h3 className="text-xl font-bold mb-3">সিভি ও রিসোর্স</h3>
-                            <p className="text-orange-100 text-sm leading-relaxed mb-4">প্রিমিয়াম সিভি টেম্পলেট, কভার লেটার জেনারেটর এবং ইন্টারভিউ প্রস্তুতির এক্সক্লুসিভ রিসোর্স প্যাক সম্পূর্ণ ফ্রি।</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Pricing / Enrollment - RESTRUCTURED */}
-            <section className="py-24 bg-slate-900 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+            {/* Pricing / CTA Section */}
+            <section className="py-20 bg-[#1E293B] text-white overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[100px]"></div>
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px]"></div>
+                
                 <div className="container mx-auto px-4 text-center relative z-10">
-                    <h2 className="text-3xl md:text-5xl font-bold mb-6">ক্যারিয়ার গড়তে প্রস্তুত?</h2>
-                    <p className="text-slate-300 text-lg mb-10 max-w-2xl mx-auto">
-                        হাজার হাজার টাকা খরচ না করে, নামমাত্র মূল্যে নিজের ভবিষ্যৎ গড়ুন।
+                    <h2 className="text-3xl md:text-5xl font-bold mb-6">আপনার সিট নিশ্চিত করুন</h2>
+                    <p className="text-slate-300 mb-10 max-w-2xl mx-auto">
+                        প্রতি ব্যাচে আসন সংখ্যা সীমিত। আমাদের পরবর্তী ব্যাচের ক্লাস শুরু হতে যাচ্ছে খুব শীঘ্রই।
                     </p>
                     
-                    <div className="bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-md rounded-3xl p-8 max-w-lg mx-auto border border-white/20 shadow-2xl relative">
-                        <div className="absolute top-0 right-0 bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl uppercase tracking-wider">Limited Offer</div>
+                    <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
+                        <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl text-left w-full max-w-sm">
+                            <p className="text-sm text-slate-400 uppercase font-bold mb-1">ভর্তি ফি (লাইফটাইম মেম্বারশিপ)</p>
+                            <h3 className="text-3xl font-bold text-white mb-4">১,৫০০ টাকা</h3>
+                            <ul className="space-y-2 text-sm text-slate-300 mb-6">
+                                <li className="flex gap-2"><Check size={16} className="text-green-400"/> লাইফটাইম এক্সেস</li>
+                                <li className="flex gap-2"><Check size={16} className="text-green-400"/> ওয়েলকাম কিট</li>
+                                <li className="flex gap-2"><Check size={16} className="text-green-400"/> আইডি কার্ড</li>
+                            </ul>
+                        </div>
                         
-                        <div className="mb-8 border-b border-white/10 pb-6">
-                            <p className="text-slate-400 text-sm uppercase tracking-wider mb-2">Total Program Value</p>
-                            <p className="text-3xl font-bold text-slate-400 line-through decoration-rose-500 decoration-2">৳ ২১,৫০০</p>
+                        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-6 rounded-2xl text-left w-full max-w-sm shadow-xl transform scale-105 border border-white/20">
+                            <div className="absolute top-4 right-4 bg-yellow-400 text-slate-900 text-xs font-bold px-2 py-1 rounded">POPULAR</div>
+                            <p className="text-sm text-blue-100 uppercase font-bold mb-1">১ম মডিউল ফি</p>
+                            <h3 className="text-3xl font-bold text-white mb-4">২,০০০ টাকা</h3>
+                            <ul className="space-y-2 text-sm text-blue-50 mb-6">
+                                <li className="flex gap-2"><Check size={16}/> ৮টি লাইভ ক্লাস</li>
+                                <li className="flex gap-2"><Check size={16}/> মেন্টরশিপ সেশন</li>
+                                <li className="flex gap-2"><Check size={16}/> প্র্যাকটিক্যাল টাস্ক</li>
+                            </ul>
                         </div>
+                    </div>
 
-                        <div className="space-y-4 mb-8 text-left">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-300">Admission Fee (Lifetime Access)</span>
-                                <span className="font-bold">৳ ১,৫০০</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-slate-300">Module 1 Fee (After Discount)</span>
-                                <span className="font-bold text-green-400">৳ ২,০০০</span>
-                            </div>
-                            <div className="flex justify-between items-center text-sm opacity-50">
-                                <span className="text-slate-400">Next Modules (Pay Later)</span>
-                                <span className="font-bold">৳ ২,০০০ / module</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-white/10 rounded-xl p-4 mb-8">
-                            <p className="text-sm text-blue-200 mb-1">To Start Now (Payable)</p>
-                            <div className="flex justify-center items-end gap-2">
-                                <span className="text-5xl font-bold text-white">৳ ৩,৫০০</span>
-                            </div>
-                            <p className="text-[10px] text-slate-400 mt-2">Admission Fee (1500) + 1st Module (2000)</p>
-                        </div>
-
-                        <button 
-                            onClick={() => setIsModalOpen(true)}
-                            className="w-full bg-white text-slate-900 font-bold py-4 rounded-xl hover:bg-blue-50 transition-colors shadow-lg flex justify-center items-center gap-2 group"
-                        >
-                            এখনই এনরোল করুন <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform"/>
+                    <div className="mt-12">
+                        <button onClick={() => setIsModalOpen(true)} className="bg-white text-slate-900 px-10 py-4 rounded-full font-bold text-xl hover:bg-blue-50 transition-all shadow-lg flex items-center gap-2 mx-auto">
+                            এখনই পেমেন্ট করুন <ArrowRight size={24}/>
                         </button>
-                        <p className="text-xs text-slate-500 mt-4">100% Satisfaction Guarantee</p>
+                        <p className="mt-4 text-sm text-slate-400">সর্বমোট ৩,৫০০ টাকা দিয়ে যাত্রা শুরু করুন</p>
                     </div>
                 </div>
             </section>
@@ -508,7 +338,7 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md animate-fade-in">
                     <div className="bg-white rounded-2xl w-full max-w-lg relative shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="bg-slate-50 p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-slate-800">পেমেন্ট কনফার্মেশন</h3>
+                            <h3 className="text-xl font-bold text-slate-800">ভর্তি প্রক্রিয়া</h3>
                             <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 bg-white p-2 rounded-full shadow-sm hover:shadow transition-all"><X size={20}/></button>
                         </div>
                         
@@ -517,9 +347,9 @@ const Ecosystem: React.FC<EcosystemProps> = ({ user }) => {
                                 <div className="text-center py-8">
                                     <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Lock size={32}/></div>
                                     <h3 className="text-xl font-bold text-slate-800 mb-2">লগইন প্রয়োজন</h3>
-                                    <p className="text-slate-500 mb-6 px-4">ভর্তি সম্পন্ন করতে অনুগ্রহ করে প্রথমে লগইন করুন।</p>
-                                    <button onClick={handleGoogleLogin} className="w-full border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl transition flex justify-center items-center gap-2">
-                                        <Chrome size={18} className="text-blue-600"/> গুগল দিয়ে লগইন
+                                    <p className="text-slate-500 mb-6 px-4">ভর্তি সম্পন্ন করতে অনুগ্রহ করে প্রথমে আপনার অ্যাকাউন্টে লগইন করুন।</p>
+                                    <button onClick={handleLoginClick} className="w-full bg-slate-900 hover:bg-blue-600 text-white font-bold py-4 rounded-xl transition flex justify-center items-center gap-2 shadow-lg">
+                                        লগইন করুন <ArrowRight size={18}/>
                                     </button>
                                 </div>
                             ) : (
